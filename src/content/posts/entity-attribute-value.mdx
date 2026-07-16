@@ -1,0 +1,153 @@
+---
+author: DangVoHongPhuc
+pubDatetime: 2023-06-15T15:20:35Z
+modDatetime: 2026-05-17T04:57:06.476Z
+title: Entity-Attribute-Value (EAV) in Database Design Pattern
+slug: entity-attribute-value
+featured: true
+draft: false
+tags: 
+  - docs
+  - database-design-pattern
+description: 
+  "These blogs is my diary of learning :)) feel free to read or feed back to me."
+---
+This post provides an overview of the Entity-Attribute-Value (EAV) database design pattern, its advantages, disadvantages, and use cases.
+
+![Entity-Attribute-Value Database Design](/posts/entity-attribute-value/index.png)
+
+## Table of contents
+
+## Intro
+Entity-Attribute-Value (EAV) is a database design pattern that allows for flexible and dynamic data modeling. It is commonly used in scenarios where the number of attributes for an entity can vary significantly.
+This also helps object to extend with new capablities at runtime without modifying database.
+
+## The rigid Relational Approach: Code Analysis
+### Example database schema
+This is the typical database design for `Content Management System`
+```csharp
+// 1. CMS Video Entity
+public class CmsVideo : BaseEntity
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; }
+    public string Slug { get; set; }
+    
+    public bool IsDisplay { get; set; }
+    public bool IsDisplayOnLandingPage { get; set; } 
+    
+    public List<CmsVideoPropertySetting> CmsVideoPropertySettings { get; set; }
+}
+
+// 2. CMS Blog Entity
+public class Blog : AuditableEntity<Guid>
+{
+    public string Title { get; set; }
+    public string Content { get; set; }
+    public string Slug { get; set; }
+    
+    public bool IsDisplay { get; set; }
+    
+    public virtual PropertySetting Author { get; set; } 
+    public virtual ICollection<BlogCategory> BlogCategories { get; set; }
+}
+
+// 3. Blog Permission Entity
+public class BlogPermissionDetail : AuditableEntity<Guid>
+{
+  public Guid? BlogPermissionId { get; set; }
+  public Guid? PropertySettingId { get; set; }
+  public bool IsDeleted { get; set; }
+  public virtual BlogPermission BlogPermission { get; set; }
+  public virtual PropertySetting PropertySetting { get; set; }
+}
+
+// 4. Generalized PropertySetting attempting to serve multiple contexts
+public class PropertySetting : Entity<Guid>
+{
+    public string Value { get; set; }
+    
+    public virtual ICollection<Blog> Blogs { get; set; }
+    public virtual ICollection<Blog> IndividualBlogs { get; set; }
+    public virtual ICollection<BlogCategory> BlogCategories { get; set; }
+    
+    public string DevelopmentStageName { get; set; }
+    public int? From { get; set; }
+    public int? To { get; set; }
+    public AgeUnit? AgeUnit { get; set; }
+}
+```
+### Problem
+While clean at first glance, this implementation harbors several hidden architectural anti-patterns that shows up as the application grows:
+
+Here is a detailed analysis of the three major issues:
+#### 1. Explosion of Junction Tables (Violation of Open-Closed Principle)
+Every time a new entity (such as `Blog`, `CmsVideo`, or `BlogPermission`) needs to associate with a setting, a new junction table/class is created (e.g., `BlogPermissionDetail`, `CmsVideoPropertySetting`, `BlogCategory`).
+
+#### 2. Semantic Mismatch (The `authorId`)
+A configuration class currently hold properties such as `Note`, `Logo`, `OrderNo`, `DevelopmentStageName`. It should not contain a human represent which makes the code is confusing and unreadable.
+
+#### 3. Violation of Single Responsibility Principle (SRP)
+The generic `ProperSetting` class contains columns that are highly specific to only one type of setting, make this field mostly `null` - the `DevelopmentStage` type.
+
+```csharp
+// Inside PropertySetting.cs
+public string DevelopmentStageName { get; set; }
+public int? From { get; set; }
+public int? To { get; set; }
+public AgeUnit? AgeUnit { get; set; }
+```
+
+## Entity-Attribute-Value (EAV) Design Pattern
+import ResponsiveTable from '@/components/ResponsiveTable.astro';
+
+<figure>
+  <img
+    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkjvrgd0ioQtgf6j_Lo4FqDz5Wbqd791p-w2MqTUd9POvpSPr2A7CdC3Dj&s=10"
+    alt="Free Classic wooden desk with writing materials, vintage clock, and a leather bag. Stock Photo"
+  />
+  <figcaption class="text-center">
+    Photo by{" "}
+    <a href="https://www.pexels.com/photo/brown-wooden-desk-159618/">Phuc Dang ;))</a>
+  </figcaption>
+</figure>
+
+
+### Resolve the above issues
+
+#### Building Entity
+Refactor clean entities to avoid semantic issues, use only base attributes for entities.
+
+#### Building Attribute Entity
+```csharp
+
+public class AttributeDefinition : BaseEntity
+{
+    public Guid Id { get; set; }
+    // e.g., "Author", "DevelopmentStageName", "AgeUnitFrom", "CmsVideo", "Blog"
+    public string Name { get; set; } 
+    // e.g., "Boolean", "String", "Integer", "DateTime" (used for parsing value at runtime)
+    public string DataType { get; set; } 
+    public string Description { get; set; }
+}
+```
+
+#### Building Value Entity
+```csharp
+public class EntityAttributeValue : BaseEntity
+{
+    public Guid Id { get; set; }
+    // 1. Entity Identifier: Points to the ID of Blog, CmsVideo, or BlogPermission
+    public Guid EntityId { get; set; }
+    // 2. Discriminator: Stores the entity class type (e.g., "Blog", "CmsVideo", "BlogPermission")
+    public string EntityType { get; set; } 
+    // 3. Attribute Link
+    public Guid AttributeDefinitionId { get; set; }
+
+    public virtual AttributeDefinition AttributeDefinition { get; set; }
+    // 4. Stored Value (Stored columns as String to parse at runtime)
+    public string Value { get; set; } // This can avoid null columns in PropertySetting class and allow dynamic property at runtime 
+}
+```
+
+
