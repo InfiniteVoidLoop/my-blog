@@ -150,4 +150,104 @@ public class EntityAttributeValue : BaseEntity
 }
 ```
 
+## Flexible object
+### Bringing EAV to the Application Layer ?
+EAV is a database design pattern that allows for flexible and dynamic data modeling. We need a object or design pattern that can handle the extension of objects at runtime without modyfing code. This leads to a massive problem: ***How do we represent this dynamic data in our application layer code ?***
 
+### What is a Flexible Object ?  
+- ***Flexible object*** is a design pattern that allows for the creation of objects with dynamic properties and behaviors. It is often used in scenarios where the structure of an object may change at runtime, or when the number of properties an object can have is not known in advance.
+- It is built upon two core pillars:
+  1. Dynamic State (Data Decoupling)
+  2. Dynamic Behavior (Logic Decoupling)
+
+### Code Demo:
+#### 1. FlexibleBlog Implementation
+
+```csharp
+public interface IBlogBehavior{
+  object Execute(FlexibleBlog Blog, params object[]args);
+}
+
+public class FlexibleBlog{
+  // Static property in Blog
+  public Guid Id {get; set;}
+  public string Title {get; set;}
+  public string Content {get; set;}
+
+  private readonly Dictionary<string, object> _properties = new Dictionary<string, object>();
+  private readonly Dictionary<string, IBlogBehavior> _behaviors = new Dictionary<string, IBlogBehavior>();
+
+  // Demo constructor
+  public FlexibleBlog(){
+    Id = Guid.NewGuid();
+    Title = "Default Title";
+    Content = "Default Content";
+  }
+  public void SetProperty(string key, object value){
+    Console.WriteLine($"Setting property {key} to {value}");
+    _properties[key] = value;
+  } 
+  
+  // Dynamic binding property in Blog
+  public T GetProperty<T>(string key){
+    if(_properties.TryGetValue(key, out var value)){
+      return (T)value;
+    }
+    throw new KeyNotFoundException($"Property {key} not found");
+  }
+
+  // Dynamic binding behavior in Blog
+  public void SetBehavior(string key, IBlogBehavior behavior){
+    Console.WriteLine($"Setting behavior {key}");
+    _behaviors[key] = behavior;
+  }
+
+  public object ExecuteBehavior(string key, params object[] args){
+    if(_behaviors.TryGetValue(key, out var behavior)){
+      return behavior.Execute(this, args);
+    }
+    throw new KeyNotFoundException($"Behavior {key} not found");
+  }
+}
+```
+
+#### 2. Behavior Implementation
+```csharp
+public class ToStringBehavior: IBlogBehavior{
+  public object Execute(FlexibleBlog Blog, params object[] args){
+
+    string result = string.Empty;
+
+    if (args.Contains("Author")) {
+      result = result + Blog.GetProperty<string>("Author");
+    }
+
+    if (args.Contains("Category")) {
+      var category = Blog.GetProperty<ICategory>("Category");
+      result = result + (category != null ? category.Name : "No Category");
+    }
+
+    return result;
+  }
+}
+```
+
+#### 3. Program.cs
+```csharp
+using FlexibleObject;
+
+FlexibleBlog blog = new FlexibleBlog();
+
+blog.SetProperty("Author", "John Doe");
+blog.SetProperty("Category", new BlogCategory("Technology"));
+blog.SetBehavior("ToString", new ToStringBehavior());
+
+Console.WriteLine($"Blog ID: {blog.Id}");
+Console.WriteLine($"Blog Title: {blog.Title}");
+Console.WriteLine($"Blog Content: {blog.Content}");
+Console.WriteLine($"Blog Author: {blog.GetProperty<string>("Author")}");
+Console.WriteLine($"Blog Category: {blog.GetProperty<ICategory>("Category").Name}");
+
+string blogString = (string)blog.ExecuteBehavior("ToString", "Author");
+Console.WriteLine($"Blog ToString: {blogString}");
+```
