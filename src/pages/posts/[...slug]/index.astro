@@ -530,3 +530,60 @@ const ogImage = ogImageUrl
     window.scrollTo({ left: 0, top: 0, behavior: "instant" })
   );
 </script>
+
+<script>
+  async function renderMermaidDiagrams() {
+    const codeBlocks = Array.from(document.querySelectorAll("pre"));
+    const mermaidBlocks = codeBlocks.filter(pre => {
+      const code = pre.querySelector("code");
+      const text = (code?.textContent || pre.textContent || "").trim();
+      return (
+        pre.classList.contains("language-mermaid") ||
+        code?.classList.contains("language-mermaid") ||
+        pre.getAttribute("data-language") === "mermaid" ||
+        /^(sequenceDiagram|graph|flowchart|gantt|classDiagram|erDiagram|journey|mindmap|pie|stateDiagram-v2|stateDiagram)/.test(text)
+      );
+    });
+
+    if (mermaidBlocks.length === 0) return;
+
+    // @ts-ignore
+    const { default: mermaid } = await import(
+      /* @vite-ignore */
+      "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs"
+    );
+
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: isDark ? "dark" : "neutral",
+      securityLevel: "loose",
+      fontFamily: "inherit",
+    });
+
+    for (let i = 0; i < mermaidBlocks.length; i++) {
+      const preEl = mermaidBlocks[i];
+      const codeEl = preEl.querySelector("code") || preEl;
+      const rawCode = codeEl.textContent?.trim() || "";
+      if (!rawCode) continue;
+
+      const container = document.createElement("div");
+      container.className =
+        "mermaid-diagram my-6 flex justify-center overflow-x-auto rounded-lg border border-border p-4 bg-muted/20";
+
+      const id = `mermaid-svg-${Math.random().toString(36).substring(2, 9)}-${i}`;
+      try {
+        const { svg } = await mermaid.render(id, rawCode);
+        container.innerHTML = svg;
+        preEl.parentNode?.replaceChild(container, preEl);
+      } catch (err) {
+        console.error("Failed to render Mermaid diagram:", err);
+      }
+    }
+  }
+
+  renderMermaidDiagrams();
+  document.addEventListener("astro:page-load", renderMermaidDiagrams);
+  document.addEventListener("astro:after-swap", renderMermaidDiagrams);
+</script>
+
