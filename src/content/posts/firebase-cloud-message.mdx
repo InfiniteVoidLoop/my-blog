@@ -259,12 +259,6 @@ register(messaging, { vapidKey: "BKagOny0KF_2pCJQ3m....moL0ewzQ8rZu" });
 
 #### Access the Firebase Installation ID (FID)
 
-> [!CAUTION]
-> Don't use both the Firebase Installation ID APIs and the deprecated registration token APIs for registration management at the same time. We recommend using Firebase Installation IDs (FIDs) to segment or target your app instances.
-
-> [!TIP]
-> See Best practices for FCM registration management for tips on managing registrations.
-
 To register the app instance and retrieve the Firebase Installation ID (FID) for message targeting:
 
 ```javascript file="firebase-fid.js"
@@ -272,7 +266,7 @@ import { getMessaging, onRegistered, register } from "firebase/messaging";
 
 const messaging = getMessaging();
 
-// 1. Implement callback to receive the Firebase installation ID upon registration.
+// Implement callback to receive the Firebase installation ID upon registration.
 onRegistered(messaging, (installationId) => {
   console.log("Registered installation ID:", installationId);
 
@@ -280,7 +274,7 @@ onRegistered(messaging, (installationId) => {
   sendRegistrationToServer(installationId);
 });
 
-// 2. You can also manually trigger registration (recommended on app startup)
+// Get installationId
 register(messaging, {
   vapidKey: "<YOUR_PUBLIC_VAPID_KEY_HERE>"
 }).then(() => {
