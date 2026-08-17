@@ -1,6 +1,7 @@
 export interface UIStrings {
   nav: {
     home: string;
+    profile: string;
     posts: string;
     tags: string;
     about: string;
