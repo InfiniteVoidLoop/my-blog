@@ -97,5 +97,53 @@ description:
 2. Authorize a service account from the project 
 
 #### 2. Send messages to specific devices:
+##### Send to a single, specific device
+- You can use its **Firebase Installation ID (FID)**
+```CSharp
+var fid = "YOUR_REGISTERED_FID";
 
+
+var message = new Message(){
+    Data = new Dictionary<string, string>()
+    {
+        {"score": "200"},
+        {"time": "3:00"}
+    },
+    Fid = fid
+};
+// Send message to other device corresponding to the provided FID
+string response = await FirebaseMessaging.DefaultInstance.SendAsync(message);
+
+```
+
+
+##### Send one messages to multiple devices
+```CSharp
+var fids = new List<string> ()
+{
+    "YOUR_REGISTERED_FID_1",
+    // ...
+    "YOUR_REGISTERED_FID_N"
+};
+
+var message = new MulticastMessage()
+{
+    Data = new Dictionary<string, string>()
+    {
+        {"score": "200"},
+        {"time": "3:00"}
+    },
+    Fids = fids
+};
+
+var response = await FirebaseMessaging.DefaultInstance.SendEachForMulticastAsync(message);
+if (response.FailureCount > 0){
+    var failedFids = new List<string>();
+    for (int i = 0; i < response.Responses.Count; i++){
+        if (!response.Response[i].IsSucccess){
+             failedIds.add(fids[i]);
+        }
+    }
+}
+```
 
