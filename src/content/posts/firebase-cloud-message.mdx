@@ -1,0 +1,101 @@
+---
+author: DangVoHongPhuc
+pubDatetime: 2026-07-16T20:09:20+07
+title: "Firebase Cloud Message"
+slug: firebase-cloud-message
+featured: true
+draft: false
+tags: 
+    - system-design
+    - backend
+    - firebase-cloud-message
+description: 
+    "A simple, developer-friendly guide to Firebase Cloud Message."
+---
+**Firebase Cloud Messaging (FCM)** is a cross-platform messaging solution that lets you reliably send messages.
+
+![Firebase Cloud Messaging](/posts/firebase-cloud-message/index.png)
+## Table of contents
+## Key capabilities of FCM
+1. **Send notification messages or data messages**.
+2. **Versatile message targeting:** Single devices, groups of device or to subscribers of topics.
+
+## How does it work?
+**An FCM implementation includes two main components for sending and receiving**:
+1. A trusted environment such as Cloud Functions or an app server to build, target, send messages.
+2. An Apple, Android or Web client app that receives messages. 
+
+## FCM Architectural Overview
+### Flow 1: Device Registration
+```
+┌───────────────┐                                          ┌───────────────┐
+│               │   1. Request Permission & Get Token      │               │
+│    Client     │ ───────────────────────────────────────► │  FCM Backend  │
+│   (Web/App)   │ ◄─────────────────────────────────────── │   (Google)    │
+│               │   2. Return Device Token                 │               │
+└───────┬───────┘                                          └───────────────┘
+        │
+        │ 3. Send Token to Server (store UserId ↔ Token)
+        ▼
+┌───────────────┐
+│               │
+│  App Server   │
+│   (Backend)   │
+│               │
+└───────────────┘
+```
+
+### Flow 2: Push Notification
+```mermaid
+┌───────────────┐                                          ┌───────────────┐
+│               │   1. Send Payload + Target Tokens        │               │
+│  App Server   │ ───────────────────────────────────────► │  FCM Backend  │
+│   (Backend)   │      (Admin SDK / HTTP v1 API)           │   (Google)    │
+│               │                                          │               │
+└───────────────┘                                          └───────┬───────┘
+                                                                   │
+                                                                   │ 2. Route via Platform Layer
+                                                                   ▼
+                                                        ┌─────────────────┐
+                                                        │  Push Transport │ (APNs / GMS / Web Push)
+                                                        └────────┬────────┘
+                                                                 │
+                                                                 │ 3. Deliver Push
+                                                                 ▼
+                                                        ┌─────────────────┐
+                                                        │  Client Device  │ (Foreground / Background)
+                                                        └─────────────────┘
+```
+## Set up your server environment
+**The server side of Firebase Cloud Messaging consists of two core components:**
+* The FCM backend provided by **Google**.
+* Your app server or other trusted server environment where your logic runs.
+
+-> Your app server sends message requests to the FCM backend, which then routes messages to client apps running on users' devices.
+
+### Requirements for your server environment
+* Aple to send properly formatted message requests to the FCM backend.
+* Able to handle request and resend them using **Exponential back-off**.
+* Able to securely store server authorization credentials and client registration tokens.
+
+### Required credentials for Firebase
+
+| Credential | Description |
+| --- | --- |
+| Project ID | Unique identifier for your Firebase project, used in requests to FCM v1 HTTP endpoint. |
+| Registration Token | Unique token identifying each client app instance, required for messaging. |
+| Sender ID | Numerical value identifying the sender, same as project number. |
+| Access Token | Short-lived OAuth 2.0 token authorizing requests to HTTP v1 API. |
+
+### Interacting options with FCM servers
+* The **Firebase Admin SDK**, which has support for Node, Java, C#, Python and Go.
+* The FCM HTTP v1 API, a REST API.
+
+### Send a message using Firebase Admin SDK
+#### 1. Quick setup:
+1. Enable the FCM HTTP v1 API.
+2. Authorize a service account from the project 
+
+#### 2. Send messages to specific devices:
+
+
