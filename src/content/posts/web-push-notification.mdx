@@ -1,0 +1,179 @@
+---
+author: DangVoHongPhuc
+pubDatetime: 2026-07-16T20:09:20+07
+title: "Web Push Notification"
+slug: web-push-notification
+featured: true
+draft: false
+tags:
+    - system-design
+    - backend
+    - web-push-notification
+    - firebase
+description: "A comprehensive, developer-friendly guide to web push notifications, how they work, and how to implement them using Firebase Cloud Messaging (FCM)."
+---
+**Web Push Notifications** or **browser notifications** are mechanism that browser daemon maintain **persistent connection** 
+to a cloud push service (e.g., FCM, APNs) to receive **near-real-time** messages sent from application servers, waking up browser's **Service worker** even when the website is closed.
+
+> [!TIP]
+> Looking for a practical implementation guide using Firebase infrastructure? Check out my guide on [Firebase Cloud Messaging (FCM)](/posts/firebase-cloud-message) for backend server integration and code examples.
+
+![Web Push Notifications](/posts/web-push-notification/index.png)
+## Table of contents
+## Browser support for web push notifications
+> [!NOTE]
+> - IOS does not support web push notifications yet.
+> - On mobile browsers, the support is limited to Android devices only (Chrome, Firefox, Opera).
+
+On the desktop, web push notifications are supported by Chrome, Firefox, Safari, Opera and Edge.
+
+## Service worker
+> [!NOTE]
+> - **Push notification** is handled by the browser's **service worker**. 
+> - **A service worker** receives `push` event when it arrives on the device.
+
+Using service worker to subscribe to certain notifications. The [PushManager](https://developer.mozilla.org/en-US/docs/Web/API/PushManager) interface of the [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API) provides a way to receive notifications from other servers.
+
+---
+
+## Service Worker Lifecycle & Event Wake-up Flow
+
+To conserve mobile battery, CPU, and RAM, a browser does **not** keep Service Workers running continuously. Instead, Service Workers are kept in a **sleeping/terminated** state until an event occurs.
+
+When a push notification arrives:
+1. The **OS / Browser daemon** receives the incoming TCP push packet over a persistent low-power socket connection.
+2. The **Browser Main Process** identifies the registered application origin and wakes up (spawns) the Service Worker execution context.
+3. The **Service Worker** handles the `push` event, triggers UI notifications via `showNotification()`, and returns to sleep after the `event.waitUntil()` promise resolves.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant PushServer as Push Service (FCM / APNs)
+    participant OS as OS / Push Daemon
+    participant Browser as Browser Main Process
+    participant SW as Service Worker (JS Context)
+
+    Note over SW: Idle State: Terminated / Sleeping (0% CPU, Saved RAM)
+    PushServer->>OS: 1. Push Event Packet (Persistent Connection)
+    OS->>Browser: 2. Receive Packet & Dispatch to Browser
+    Browser->>Browser: 3. Identify Origin & Target Service Worker
+    Browser->>SW: 4. Spawn SW Process & Instantiate V8 Context
+    Browser->>SW: 5. Fire `push` Event (self.addEventListener('push'))
+    activate SW
+    Note over SW: Execute JS Handler & showNotification()
+    SW-->>Browser: 6. Promise Resolved (event.waitUntil)
+    deactivate SW
+    Note over SW: Return to Sleep / Terminated State
+```
+
+---
+
+## Architectural Comparison: Web Push vs. Linux `epoll`
+
+The mechanism of putting a process to sleep and waking it up only when an event occurs is heavily inspired by kernel-level event multiplexing, specifically **Linux `epoll`**.
+
+### How Linux `epoll` Works
+
+Instead of constantly polling sockets in a busy loop (which wastes CPU), a server application (like NGINX or Node.js libuv) delegates socket monitoring to the Linux Kernel via `epoll_wait()`. The process goes into a **blocked/sleeping state** (`TASK_INTERRUPTIBLE`) until an I/O event arrives at the Network Interface Card (NIC).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant NIC as Hardware NIC / Network
+    participant Kernel as Linux Kernel (TCP Stack & epoll)
+    participant Process as User-Space Process (Event Loop)
+
+    Note over Process: Sleeping State: epoll_wait() (Yields CPU)
+    NIC->>Kernel: 1. Hardware Interrupt (Packet arrives at Socket FD)
+    Kernel->>Kernel: 2. Process Packet & Add FD to epoll Ready List (rdlist)
+    Kernel->>Process: 3. Wake Up Process (wake_up_process -> TASK_RUNNING)
+    Process->>Process: 4. epoll_wait() returns Ready File Descriptors
+    activate Process
+    Note over Process: Execute Handler (Read / Write Socket Data)
+    Process->>Kernel: 5. Call epoll_wait() again
+    deactivate Process
+    Note over Process: Yield CPU & Return to Sleep State
+```
+
+### Architectural Comparison Table
+
+Both Web Push Service Workers and `epoll` share the same event-driven, push-based design pattern:
+
+| Feature | Web Push (Service Worker) | Linux `epoll` System Call |
+| :--- | :--- | :--- |
+| **Idle State** | SW process is terminated / asleep | User process is blocked sleeping on `epoll_wait()` |
+| **Trigger Event** | Incoming push payload packet from Push Gateway | Hardware / Network packet on Socket FD |
+| **Event Dispatcher** | Browser Main Process | Linux Kernel (`epoll` ready list) |
+| **Resource Efficiency** | 0% CPU & 0 RAM when no push notifications | 0% CPU consuming while waiting for network I/O |
+
+## How push works
+** The three key steps to implementing push are: **
+### 1. Subscribe a user to push notification
+- **Register a service worker**
+```Javascript
+const register = await navigator.serviceWorker.register('/sw.js', {
+    scope: '/'
+});
+```
+- **Create a subscription to Push Server using the PushManager.**
+1. Getting permission from the user to send them push messages -> The browser will show a popup that asks user to allow the website to receive & show push notifications.
+2. Getting a push subscription object from the browser. It contains all the information we need to send a push message to that user.
+
+```Javascript
+// Create a subscription object to send to the server
+const subscription = await register.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array('<YOUR_PUBLIC_VAPID_KEY>')
+});
+```
+
+### 2. Understanding VAPID Keys (Voluntary Application Server Identification)
+
+VAPID (RFC 8292) is a security standard using **Asymmetric Elliptic Curve Cryptography (EC P-256 / prime256v1)** that allows application servers to identify themselves to Push Services (such as FCM, APNs, or Mozilla Push Service) without requiring vendor-specific API keys.
+
+It relies on a keypair consisting of a **Public Key** and a **Private Key**:
+
+#### 🔑 VAPID Key Roles: Public vs. Private Key
+
+| Key Type | Storage & Exposure | Primary Purpose |
+| :--- | :--- | :--- |
+| **Public Key** | Shared publicly (Client JS / Browser) | **Identity Registration & Verification** |
+| **Private Key** | Strictly Secret (Server Backend / Env Variables) | **Digital Signature & Authentication** |
+
+---
+
+### VAPID Key Pair Authentication Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client as Web Browser (Client)
+    participant Server as Application Server (Backend)
+    participant PushService as Push Service (FCM / APNs / WNS)
+
+    Note over Server: 1. Generate VAPID Key Pair (EC P-256)<br/>• Public Key (Public)<br/>• Private Key (Secret)
+
+    Client->>Server: 2. Request VAPID Public Key
+    Server-->>Client: 3. Return VAPID Public Key
+    Client->>PushService: 4. pushManager.subscribe({ applicationServerKey: publicVapidKey })
+    Note over PushService: Binds VAPID Public Key to generated PushSubscription Endpoint URL
+    PushService-->>Client: 5. Return PushSubscription (Endpoint URL + P256dh / Auth Keys)
+    Client->>Server: 6. Save PushSubscription in Backend DB
+
+    Note over Server: --- Push Dispatch Event ---
+    Note over Server: 7. Create VAPID JWT & Sign using VAPID Private Key
+    Server->>PushService: 8. HTTP POST <Endpoint URL><br/>Header: Authorization: vapid t=<JWT>, k=<VAPID_PUBLIC_KEY>
+    
+    Note over PushService: 9. Verify JWT Signature using stored Public Key
+    alt Signature Valid & Public Key Matches
+        PushService-->>Client: 10. Forward Push Payload to Browser / Service Worker
+    else Signature Invalid / Mismatch
+        PushService-->>Server: 401 Unauthorized / 403 Forbidden Response
+    end
+```
+
+> [!IMPORTANT]
+> - **Never leak your VAPID Private Key** to the client side or source control.
+> - If your private key is leaked, any attacker could send push notifications to all subscriptions bound to your public key.
+
+
