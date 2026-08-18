@@ -1,0 +1,108 @@
+---
+author: DangVoHongPhuc
+pubDatetime: 2026-07-16T20:09:20+07
+title: "Web Push Notification"
+slug: web-push-notification
+featured: true
+draft: false
+tags:
+    - system-design
+    - backend
+    - web-push-notification
+    - firebase
+description: "A comprehensive, developer-friendly guide to web push notifications, how they work, and how to implement them using Firebase Cloud Messaging (FCM)."
+---
+**Web Push Notifications** or **browser notifications** are mechanism that browser daemon maintain **persistent connection** 
+to a cloud push service (e.g., FCM, APNs) to receive **near-real-time** messages sent from application servers, waking up browser's **Service worker** even when the website is closed.
+
+
+![Web Push Notifications](/posts/web-push-notification/index.png)
+## Table of contents
+## Browser support for web push notifications
+> [!NOTE]
+> - IOS does not support web push notifications yet.
+> - On mobile browsers, the support is limited to Android devices only (Chrome, Firefox, Opera).
+
+On the desktop, web push notifications are supported by Chrome, Firefox, Safari, Opera and Edge.
+
+## Service worker
+> [!NOTE]
+> - **Push notification** is handled by the browser's **service worker**. 
+> - **A service worker** receives `push` event when it arrives on the device.
+
+Using service worker to subscribe to certain notifications. The [PushManager](https://developer.mozilla.org/en-US/docs/Web/API/PushManager) interface of the [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API) provides a way to receive notifications from other servers.
+
+---
+
+## Service Worker Lifecycle & Event Wake-up Flow
+
+To conserve mobile battery, CPU, and RAM, a browser does **not** keep Service Workers running continuously. Instead, Service Workers are kept in a **sleeping/terminated** state until an event occurs.
+
+When a push notification arrives:
+1. The **OS / Browser daemon** receives the incoming TCP push packet over a persistent low-power socket connection.
+2. The **Browser Main Process** identifies the registered application origin and wakes up (spawns) the Service Worker execution context.
+3. The **Service Worker** handles the `push` event, triggers UI notifications via `showNotification()`, and returns to sleep after the `event.waitUntil()` promise resolves.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant PushServer as Push Service (FCM / APNs)
+    participant OS as OS / Push Daemon
+    participant Browser as Browser Main Process
+    participant SW as Service Worker (JS Context)
+
+    Note over SW: Idle State: Terminated / Sleeping (0% CPU, Saved RAM)
+    PushServer->>OS: 1. Push Event Packet (Persistent Connection)
+    OS->>Browser: 2. Receive Packet & Dispatch to Browser
+    Browser->>Browser: 3. Identify Origin & Target Service Worker
+    Browser->>SW: 4. Spawn SW Process & Instantiate V8 Context
+    Browser->>SW: 5. Fire `push` Event (self.addEventListener('push'))
+    activate SW
+    Note over SW: Execute JS Handler & showNotification()
+    SW-->>Browser: 6. Promise Resolved (event.waitUntil)
+    deactivate SW
+    Note over SW: Return to Sleep / Terminated State
+```
+
+---
+
+## Architectural Comparison: Web Push vs. Linux `epoll`
+
+The mechanism of putting a process to sleep and waking it up only when an event occurs is heavily inspired by kernel-level event multiplexing, specifically **Linux `epoll`**.
+
+### How Linux `epoll` Works
+
+Instead of constantly polling sockets in a busy loop (which wastes CPU), a server application (like NGINX or Node.js libuv) delegates socket monitoring to the Linux Kernel via `epoll_wait()`. The process goes into a **blocked/sleeping state** (`TASK_INTERRUPTIBLE`) until an I/O event arrives at the Network Interface Card (NIC).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant NIC as Hardware NIC / Network
+    participant Kernel as Linux Kernel (TCP Stack & epoll)
+    participant Process as User-Space Process (Event Loop)
+
+    Note over Process: Sleeping State: epoll_wait() (Yields CPU)
+    NIC->>Kernel: 1. Hardware Interrupt (Packet arrives at Socket FD)
+    Kernel->>Kernel: 2. Process Packet & Add FD to epoll Ready List (rdlist)
+    Kernel->>Process: 3. Wake Up Process (wake_up_process -> TASK_RUNNING)
+    Process->>Process: 4. epoll_wait() returns Ready File Descriptors
+    activate Process
+    Note over Process: Execute Handler (Read / Write Socket Data)
+    Process->>Kernel: 5. Call epoll_wait() again
+    deactivate Process
+    Note over Process: Yield CPU & Return to Sleep State
+```
+
+### Architectural Comparison Table
+
+Both Web Push Service Workers and `epoll` share the same event-driven, push-based design pattern:
+
+| Feature | Web Push (Service Worker) | Linux `epoll` System Call |
+| :--- | :--- | :--- |
+| **Idle State** | SW process is terminated / asleep | User process is blocked sleeping on `epoll_wait()` |
+| **Trigger Event** | Incoming push payload packet from Push Gateway | Hardware / Network packet on Socket FD |
+| **Event Dispatcher** | Browser Main Process | Linux Kernel (`epoll` ready list) |
+| **Resource Efficiency** | 0% CPU & 0 RAM when no push notifications | 0% CPU consuming while waiting for network I/O |
+
+
+
