@@ -110,7 +110,7 @@ Both Web Push Service Workers and `epoll` share the same event-driven, push-base
 ** The three key steps to implementing push are: **
 ### 1. Subscribe a user to push notification
 - **Register a service worker**
-```Javascript
+```javascript
 const register = await navigator.serviceWorker.register('/sw.js', {
     scope: '/'
 });
@@ -119,7 +119,7 @@ const register = await navigator.serviceWorker.register('/sw.js', {
 1. Getting permission from the user to send them push messages -> The browser will show a popup that asks user to allow the website to receive & show push notifications.
 2. Getting a push subscription object from the browser. It contains all the information we need to send a push message to that user.
 
-```Javascript
+```javascript
 // Create a subscription object to send to the server
 const subscription = await register.pushManager.subscribe({
     userVisibleOnly: true,
