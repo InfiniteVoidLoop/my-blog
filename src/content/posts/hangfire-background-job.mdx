@@ -8,7 +8,7 @@ draft: false
 tags: 
     - backend
     - background-job
-description: "A background job processing framework for .NET applications that allows you to run tasks asynchronously, schedule recurring jobs, and manage job execution with a user-friendly dashboard."
+description: "A background job processing framework for .NET applications that allows you to run tasks asynchronously, schedule recurring jobs, and manage job execution with a user-friendly dashboard. Includes a complete PostgreSQL integration guide."
 ---
 **Hang fire** is a background job processing framework for .NET applications that allows you to run tasks asynchronously, schedule recurring jobs, and manage job execution with a user-friendly dashboard.
 
@@ -94,5 +94,226 @@ RecurringJob.AddOrUpdate("myScheduleJob", () => Console.WriteLine("Powerful!"), 
 > - Identifiers for each recurring job should be unique
 > - Recurring job identifier may be **case sensitive** in some storage implementations.
 
+## PostgreSQL Integration
+In this section, we'll walk through a complete setup of **Hangfire** with **PostgreSQL** storage in an ASP.NET Core project, following clean architecture principles.
+
+### NuGet Packages
+Install the following packages:
+- `Hangfire.Core` (v1.8.24): Core background job management.
+- `Hangfire.AspNetCore` (v1.8.24): Dashboard UI middleware and ASP.NET Core extension methods.
+- `Hangfire.PostgreSql` (v1.21.1): PostgreSQL storage provider.
+
+### Configuration Settings
+Add the `Hangfire` block to `appsettings.json` and `appsettings.Development.json`:
+```json
+{
+  "Hangfire": {
+    "Enabled": true,
+    "DashboardPath": "/hangfire",
+    "WorkerCount": 5,
+    "SchedulePollingIntervalSeconds": 15
+  }
+}
+```
+
+### Strong-typed Options Model
+Create an options class to bind the configuration section, keeping configuration strongly-typed and testable.
+
+```csharp file="HangfireOptions.cs"
+namespace ERP.Contracts.Common;
+
+public sealed class HangfireOptions
+{
+    public const string SectionName = "Hangfire";
+
+    public bool Enabled { get; set; } = true;
+    public string DashboardPath { get; set; } = "/hangfire";
+    public int WorkerCount { get; set; } = 5;
+    public int SchedulePollingIntervalSeconds { get; set; } = 15;
+}
+```
+
+### Abstraction Interface
+Define an `IBackgroundJobService` interface in the **Application** layer so the domain and application code never depend directly on Hangfire.
+
+```csharp file="IBackgroundJobService.cs"
+using System.Linq.Expressions;
+
+namespace ERP.Application.Common.Interfaces;
+
+public interface IBackgroundJobService
+{
+    string Enqueue(Expression<Action> methodCall);
+    string Enqueue<T>(Expression<Action<T>> methodCall);
+    string Schedule(Expression<Action> methodCall, TimeSpan delay);
+    string Schedule<T>(Expression<Action<T>> methodCall, TimeSpan delay);
+    void AddOrUpdateRecurringJob(string recurringJobId, Expression<Action> methodCall, string cronExpression);
+    void AddOrUpdateRecurringJob<T>(string recurringJobId, Expression<Action<T>> methodCall, string cronExpression);
+    bool RemoveRecurringJob(string recurringJobId);
+}
+```
+
+### Infrastructure Implementation
+The concrete implementation lives in the **Infrastructure** layer and wraps Hangfire's `IBackgroundJobClient` and `IRecurringJobManager`.
+
+```csharp file="HangfireBackgroundJobService.cs"
+using System.Linq.Expressions;
+using ERP.Application.Common.Interfaces;
+using Hangfire;
+
+namespace ERP.Infrastructure.Services;
+
+public sealed class HangfireBackgroundJobService : IBackgroundJobService
+{
+    private readonly IBackgroundJobClient _backgroundJobClient;
+    private readonly IRecurringJobManager _recurringJobManager;
+
+    public HangfireBackgroundJobService(
+        IBackgroundJobClient backgroundJobClient,
+        IRecurringJobManager recurringJobManager)
+    {
+        _backgroundJobClient = backgroundJobClient;
+        _recurringJobManager = recurringJobManager;
+    }
+
+    public string Enqueue(Expression<Action> methodCall) =>
+        _backgroundJobClient.Enqueue(methodCall);
+
+    public string Enqueue<T>(Expression<Action<T>> methodCall) =>
+        _backgroundJobClient.Enqueue(methodCall);
+
+    public string Schedule(Expression<Action> methodCall, TimeSpan delay) =>
+        _backgroundJobClient.Schedule(methodCall, delay);
+
+    public string Schedule<T>(Expression<Action<T>> methodCall, TimeSpan delay) =>
+        _backgroundJobClient.Schedule(methodCall, delay);
+
+    public void AddOrUpdateRecurringJob(string recurringJobId, Expression<Action> methodCall, string cronExpression) =>
+        _recurringJobManager.AddOrUpdate(recurringJobId, methodCall, cronExpression);
+
+    public void AddOrUpdateRecurringJob<T>(string recurringJobId, Expression<Action<T>> methodCall, string cronExpression) =>
+        _recurringJobManager.AddOrUpdate(recurringJobId, methodCall, cronExpression);
+
+    public bool RemoveRecurringJob(string recurringJobId)
+    {
+        _recurringJobManager.RemoveIfExists(recurringJobId);
+        return true;
+    }
+}
+```
+
+### Dashboard Authorization
+Restrict access to the Hangfire Dashboard so only authenticated users with the **SuperAdmin** or **Admin** role can view it (in non-development environments).
+
+```csharp file="HangfireDashboardAuthorizationFilter.cs"
+using ERP.Shared.Constants;
+using Hangfire.Dashboard;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+namespace ERP.Infrastructure.Authorization;
+
+public sealed class HangfireDashboardAuthorizationFilter : IDashboardAuthorizationFilter
+{
+    public bool Authorize(DashboardContext context)
+    {
+        var httpContext = context.GetHttpContext();
+
+        var env = httpContext.RequestServices.GetService<IWebHostEnvironment>();
+        if (env != null && env.IsDevelopment())
+        {
+            return true;
+        }
+
+        if (httpContext.User.Identity?.IsAuthenticated == true &&
+            (httpContext.User.IsInRole(RoleNames.SuperAdmin) || httpContext.User.IsInRole("Admin")))
+        {
+            return true;
+        }
+
+        return false;
+    }
+}
+```
+
+### Service Registration
+Register Hangfire services in the **Infrastructure** layer's `DependencyInjection.cs`.
+
+```csharp file="DependencyInjection.cs"
+services.Configure<HangfireOptions>(configuration.GetSection(HangfireOptions.SectionName));
+
+var hangfireOptions = configuration.GetSection(HangfireOptions.SectionName).Get<HangfireOptions>() ?? new HangfireOptions();
+if (hangfireOptions.Enabled)
+{
+    var connectionString = configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("DefaultConnection string is missing.");
+
+    services.AddHangfire(config =>
+    {
+        config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString), new PostgreSqlStorageOptions
+            {
+                QueuePollInterval = TimeSpan.FromSeconds(hangfireOptions.SchedulePollingIntervalSeconds),
+                PrepareSchemaIfNecessary = true,
+                SchemaName = "public"
+            });
+    });
+
+    services.AddHangfireServer(serverOptions =>
+    {
+        serverOptions.WorkerCount = hangfireOptions.WorkerCount;
+    });
+
+    services.AddScoped<IBackgroundJobService, HangfireBackgroundJobService>();
+}
+```
+
+### Middleware Pipeline
+Enable the Hangfire Dashboard in `Program.cs`, **after** authentication and authorization middleware.
+
+```csharp file="Program.cs"
+app.UseAuthentication();
+app.UseAuthorization();
+
+var hangfireOptions = builder.Configuration
+    .GetSection(HangfireOptions.SectionName).Get<HangfireOptions>() ?? new HangfireOptions();
+if (hangfireOptions.Enabled)
+{
+    app.UseHangfireDashboard(hangfireOptions.DashboardPath, new DashboardOptions
+    {
+        Authorization = new[] { new HangfireDashboardAuthorizationFilter() },
+        DashboardTitle = "Lantro ERP Hangfire Dashboard"
+    });
+}
+```
+
+> [!NOTE]
+> The order matters: `UseAuthentication` and `UseAuthorization` must come before `UseHangfireDashboard` so the authorization filter can evaluate the current user's identity and roles.
+
+### Usage Example
+Call background jobs from any **Handler** or **Service** in the Application layer through the `IBackgroundJobService` abstraction:
+
+```csharp file="ExampleService.cs"
+public class ExampleService(IBackgroundJobService backgroundJobService)
+{
+    public void ProcessOrder(Guid orderId)
+    {
+        // 1. Fire-and-forget job
+        backgroundJobService.Enqueue<IEmailService>(x => x.SendOrderConfirmationEmailAsync(orderId));
+
+        // 2. Delayed job (after 10 minutes)
+        backgroundJobService.Schedule<IEmailService>(x => x.SendFollowUpEmailAsync(orderId), TimeSpan.FromMinutes(10));
+
+        // 3. Recurring job (daily at 0:00 UTC)
+        backgroundJobService.AddOrUpdateRecurringJob<IReportService>(
+            "daily-report-job",
+            service => service.GenerateDailyReportAsync(),
+            Cron.Daily());
+    }
+}
+```
 
 
