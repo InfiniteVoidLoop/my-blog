@@ -96,15 +96,6 @@ The server component of Firebase Cloud Messaging consists of:
 - **Exponential Back-off Handling**: Implement retry logic with exponential back-off for transient network errors (`5xx` errors or rate limits).
 - **Secure Token Storage**: Securely persist service account credentials and device registration tokens in your backend store.
 
-### Required Credentials
-
-| Credential | Description |
-| :--- | :--- |
-| `Project ID` | Unique identifier for your Firebase project, required in FCM v1 HTTP endpoints. |
-| `Registration Token` | Unique token assigned to an individual client app instance. |
-| `Sender ID` | Numerical project identifier associated with your Firebase project number. |
-| `Access Token` | Short-lived OAuth 2.0 bearer token used to authenticate HTTP v1 API requests. |
-
 ---
 
 ## Interacting with FCM Servers
@@ -112,7 +103,6 @@ The server component of Firebase Cloud Messaging consists of:
 You can send notifications from your app server using two primary options:
 1. **Firebase Admin SDK** (Recommended): Available for Node.js, Java, C#, Python, and Go.
 2. **FCM HTTP v1 API**: Standard RESTful API for custom language environments.
-
 ---
 
 ## Code Examples
@@ -144,7 +134,7 @@ Console.WriteLine("✅ Firebase Admin SDK initialized successfully!");
 string fid = args.Length > 0 ? args[0].Trim() : "";
 if (string.IsNullOrWhiteSpace(fid))
 {
-    Console.Write("\n🔑 Enter FCM Device Token / FID from Web Client: ");
+    Console.Write("🔑 Enter FCM Device Token / FID from Web Client: ");
     fid = Console.ReadLine()?.Trim() ?? "";
 }
 

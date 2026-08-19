@@ -1,0 +1,98 @@
+---
+author: DangVoHongPhuc
+pubDatetime: 2026-07-16T20:09:20+07
+title: "Hangfire Background Job"
+slug: hangfire-background-job
+featured: true
+draft: false
+tags: 
+    - backend
+    - background-job
+description: "A background job processing framework for .NET applications that allows you to run tasks asynchronously, schedule recurring jobs, and manage job execution with a user-friendly dashboard."
+---
+**Hang fire** is a background job processing framework for .NET applications that allows you to run tasks asynchronously, schedule recurring jobs, and manage job execution with a user-friendly dashboard.
+
+![Hangfire Background Job](/posts/hangfire-background-job/index.png)
+
+## Table of contents
+## Overview
+The library consists of three main components: **client, storage** and **server**.
+
+## Requirements
+* .NET Framework 4.5.1 or later
+* Persistent storage
+* Newtonsoft.Json library >= 5.0.1
+
+## Client
+### Background Jobs:
+* fire-and-forget jobs (to offload the method invocation)
+* delayed (to perform the call after some time)
+* recurring (to perform methods hourly, daily and so on)
+
+### 1. Fire and forget
+#### Overview:
+- **Fire-and-forget** immediately push a method into a queue, let Hangfire Worker running background task and immediatel, let Hangfire Worker running background task and immediately return response like `200 OK` to the client.
+- **Fire-and-forget** method only need to pass a lamda expression with corresponding method and its arguments.
+```csharp file="Program.cs"
+BackgroundJob.Enqueue(() => Console.WriteLine("Hello, worlds"));
+```
+
+#### Principle:
+ The `Enqueue` method does not call the target method immediately, it runs these following steps:
+1. Serialize method informations 
+2. Create a new background job based on the serialized information
+3. Save job into a persistent storage
+4. Enqueue background job to its queue
+
+> [!NOTE]
+> After these steps were performed, the `BackgroundJob.Enqueue` method immediately returns back to a caller. 
+
+Another Hangfire compnent, called **Hangfire Server**, checks the persistent storage for enqueued background jobs.
+
+Enqueued jobs are handled by a dedicated pool of worker threads. The following process is invoked by worker: 
+1. Fetch next job and hide job from other workers. => Set CURRENT_TIMESTAMP
+2. Perform the job.
+3. Remove the job from the queue
+
+> [!NOTE]
+> So even if a process was terminated during the performance, Hangfire will perform logic in **persistent storage** to guarantee job, scan jobqueue with exceeded timestamp and not remove from the queue yet.
+
+### 2. Calling Methods with Delayed
+**Delayed** uses for postpone a method invocation
+
+``` csharp file="program.cs"
+BackgroundJob.Schedule(
+    () => Console.WriteLine("Hello, world"),
+    TimeSpan.FromDays(1));
+```
+
+When create a Delayed Job, Hangfire does not put the job immediately into queue because **Worker** can get them cause wasted. Instead it does following steps:
+1. Instead, delayed job will push into scheduled state with `ExecutedAt = Now + time_delay`
+2. **SchedulePoller** runs every 15 seconds by default and get the job with `ExecutedAt <= now` then push into **Queue**.
+3. Worker Thread for now can execute the job from queue.
+
+### 3. Recurring
+**Recurring job registration** is simple - you need to write a single line of code, but you also need to specify an identifier you can use to refer to your job later.
+
+The call to `AddOrUpdate` method will create a new recurring job or update existing job with the same identifier.
+
+```csharp file="Program.cs"
+RecurringJob.AddOrUpdate("myFirstJob", () => Console.WriteLine("Here is my first job"), Cron.Daily);
+
+```
+
+> [!NOTE]
+> This line creates a new entry in persistent storage. 
+
+The `Cron` class contains different methods and overloads to run jobs on a minute, hourly, daily, weekly, monthyly and yearly basis. You can also use [CRON expressions](http://en.wikipedia.org/wiki/Cron#CRON_expression) to specify complex schedule.
+
+```csharp file="Program.cs"
+RecurringJob.AddOrUpdate("myScheduleJob", () => Console.WriteLine("Powerful!"), "0 12 * * /2");
+```
+
+> [!NOTE]
+> - Identifiers for each recurring job should be unique
+> - Recurring job identifier may be **case sensitive** in some storage implementations.
+
+
+
