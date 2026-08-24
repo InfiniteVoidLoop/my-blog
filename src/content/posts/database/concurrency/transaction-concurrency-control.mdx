@@ -1,0 +1,150 @@
+---
+author: DangVoHongPhuc
+pubDatetime: 2026-08-24T20:09:20+07
+title: "Transaction Concurrency Control in Database Systems"
+slug: transaction-concurrency-control
+featured: true
+draft: false
+tags:
+  - database
+  - DBMS
+  - transaction
+  - transaction-concurrency-control
+description: "A comprehensive, developer-friendly guide to understanding transaction concurrency control in database systems, its importance, and the various techniques used to manage concurrent transactions effectively."
+---
+In a **Database Management System (DBMS)**, concurrency control is a mechanism in DBMS that allows simultaneous transactions update while maintaining **ACID Properties** - *Atomicity, Consistency, Isolation, and Durability*.
+
+In this blog, we will explore the concept of **Transaction Concurrency Control** in database systems, its importance, and the various techniques used to manage concurrent transactions effectively.
+
+![Transaction Concurrency Control](/posts/database/concurrency/transaction-concurrency-control/index.png)
+## Table of contents
+## ACID Properties
+### Basic concepts:
+Transactions are the operations that allow to modify and retrieve data from database. However, to ensure that the data is correct, reliable and consistent, DBMS must guarantee **ACID Properties** for all transactions.
+
+![ACID Properties](@/assets/images/database/ACID.png)
+
+### 1. Atomicity
+Atomicity means a transaction is all-or-nothing either all its operations are succeed or none of them are applied.
+If any part fails, the entire transaction is rolled back to keep database consistent.
+
+* **Commit**: If the transaction is successful, the changes are permanently applied to the database.
+* **Abort/Rollback**: If the transaction fails, any changes made during the transaction are discarded.
+
+### 2. Consistency
+- Consistency ensures that database remains in a valid state before and after the transaction. A valid state must follow all defined rules, relaionships. 
+- If a transaction violates any of the rules, it will be rolled back to maintain consistency.
+
+### 3. Isolation
+- Isolation ensures that transactions run independently without interference from other concurrent transactions.
+- It ensures that the result of concurrent transactions is the same as if they were run after another.
+
+### 4. Durability
+Durability ensures that once the transaction is commited, data is permanently stored in the database and will not be lost even in case of system crash.
+
+### Responsibility for maintaining ACID properties:
+| Property    | Responsibility             |
+| ----------- | -------------------------- |
+| Atomicity   | Transaction Manager        |
+| Consistency | Application Programmer     |
+| Isolation   | Concurrency Control Manager|
+| Durability  | Recovery Manager           |
+
+
+## Concurrency Control Protocols
+** These are set of rules correctness and consistent of transaction. The 2 main protocols are:**
+### 1. Lock-Based Protocols Control
+
+#### Types of Lock
+
+- **Shared Lock (S)**: Shared Lock is also known as **Read-only lock**. As the name suggests, it can be shared between transactions because while holding this lock, the transaction does not have the permission to update data on the data item. S-lock is requested using `lock-S` instruction.
+
+- **Exclusive Lock (X)**: Data item can be both read as well as written. This is exclusive and cannot be held simultaneously with any other lock on the same data item. X-lock is requested using `lock-X` instruction.
+
+#### Types of Lock-Based Protocols
+
+##### 1. Simplistic Lock Protocol
+
+The simplest locking approach: a transaction must acquire a lock on the data item **before** any write operation (insert, update, delete), and releases the lock when the transaction finishes.
+
+**Example**: Data item `X = 10`
+
+1. `T1` acquires an X-lock on `X`, updates `X = 20`, then releases the lock.
+2. `T2` requests an S-lock on `X` but must wait until `T1` releases its lock.
+3. `T2` reads the updated value `X = 20`.
+
+> ⚠️ This protocol handles basic concurrency but **cannot prevent deadlocks** and limits concurrency.
+
+##### 2. Pre-Claiming Lock Protocol
+
+To avoid deadlocks, a transaction must declare and acquire **all locks it needs before it starts**. It only runs if every lock is granted; otherwise, it waits (or rolls back).
+
+**Example**: Data items `X`, `Y`
+
+1. `T1` pre-claims: X-lock on `X` + S-lock on `Y`. Both are available → granted, `T1` runs.
+2. `T2` requests an S-lock on `X`, but it is locked by `T1` → `T2` must wait.
+3. When `T1` finishes and releases its locks, `T2` gets the lock and proceeds.
+
+> ⚠️ Deadlock-free, but **inefficient** when there are many transactions competing for locks.
+
+##### 3. Two-Phase Locking (2PL)
+
+A transaction follows 2PL if locking and unlocking are done in **two distinct phases**:
+
+- **Growing Phase**: transaction may acquire new locks, but cannot release any.
+- **Shrinking Phase**: transaction may release locks, but cannot acquire new ones.
+
+
+> ⚠️ 2PL guarantees **serializability** but can still suffer from **deadlocks** and **cascading rollbacks**.
+
+##### 4. Strict Two-Phase Locking (Strict 2PL)
+
+A stricter variant of 2PL: all **Exclusive (X) locks are held until the transaction commits or aborts** — they cannot be released during the shrinking phase like in basic 2PL.
+
+> ✅ By holding X-locks until commit, no other transaction can read uncommitted data → avoids **cascading rollbacks**.
+
+##### 5. Rigorous Two-Phase Locking (Rigorous 2PL)
+
+An even stricter variant of Strict 2PL: **all locks — both Shared (S) and Exclusive (X) — are held until the transaction commits or aborts**.
+
+> 💡 Simplest to implement and easiest for deadlock prevention ordering; the trade-off is **lower concurrency** since locks are held longer.
+
+#### Deadlock Comparison
+
+| Protocol      | Serializability | Can Deadlock?                                    |
+| ------------- | --------------- | ------------------------------------------------ |
+| Basic 2PL     | ✅              | Yes                                              |
+| Strict 2PL    | ✅              | Yes (even more likely — locks are held longer)   |
+| Rigorous 2PL  | ✅              | Yes (most likely)                                |
+| Pre-Claiming  | ✅              | **Never**                                        |
+
+**Why is Pre-Claiming deadlock-free?**
+
+*2PL — deadlock by circular wait:*
+
+```
+    T1 ══════ holds ═════▶ [X]
+     ▲                      ┆
+     ┆                    waits
+   waits                    ┆
+     ┆                      ▼
+    [Y] ◀═════ holds ═════ T2
+```
+
+`T1` and `T2` hold one item each and wait for each other's lock → cycle → stuck forever.
+
+*Pre-Claiming — never "hold + wait":*
+
+```
+T1 needs {X, Y} → some lock unavailable? → take NOTHING, just wait
+                                           (no locks held = no cycle)
+```
+
+**The trade-off:**
+
+- Must know **all** data items needed in advance (usually impractical).
+- Lower concurrency — transactions wait even if only one lock is unavailable.
+
+> 💡 In practice, DBMSs prefer **Strict 2PL + deadlock detection** (wait-for graph) or **timestamp ordering** over Pre-Claiming.
+
+### 2. Timestamp-Based Protocols Control
