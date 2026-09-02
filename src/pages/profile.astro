@@ -5,7 +5,7 @@ import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import config from "@/config";
 
-import workspaceBg from "@/assets/images/profile/workspace.jpg";
+import workspaceBg from "@/assets/images/profile/workspace_3.png";
 import avatar from "@/assets/images/profile/direct-face.jpg";
 ---
 
@@ -16,38 +16,42 @@ import avatar from "@/assets/images/profile/direct-face.jpg";
   <Header />
 
   <!-- ── Hero Banner ── -->
-  <div class="hero-banner relative w-full overflow-hidden">
-    <Image
-      src={workspaceBg}
-      alt="Phúc's developer workspace"
-      class="hero-img w-full block"
-      quality={95}
-      loading="eager"
-    />
+  <div class="hero-banner relative w-full">
+    <div class="hero-bg-wrapper relative w-full overflow-hidden" style="height: 400px;">
+      <Image
+        src={workspaceBg}
+        alt="Phúc's developer workspace"
+        width={1536}
+        quality={100}
+        class="hero-img w-full h-full block"
+        loading="eager"
+      />
 
-    <!-- Gradient overlay: transparent on top, opaque on bottom -->
-    <div class="hero-overlay absolute inset-0" aria-hidden="true"></div>
+      <!-- Gradient overlay -->
+      <div class="hero-overlay absolute inset-0" aria-hidden="true"></div>
 
-    <!-- Floating terminal easter-egg -->
-    <div class="absolute top-6 right-8 hidden md:flex flex-col gap-0.5 font-mono text-xs text-green-400 select-none" aria-hidden="true">
-      <span class="opacity-60">$ neofetch</span>
-      <span class="opacity-50">OS: Arch Linux x86_64</span>
-      <span class="opacity-50">WM: Hyprland</span>
-      <span class="opacity-50">Shell: zsh</span>
-      <span class="opacity-50">Editor: LazyVim</span>
+      <!-- Floating terminal easter-egg -->
+      <div class="absolute top-6 right-8 hidden md:flex flex-col gap-0.5 font-mono text-xs text-green-400 select-none" aria-hidden="true">
+        <span class="opacity-60">$ neofetch</span>
+        <span class="opacity-50">OS: Arch Linux x86_64</span>
+        <span class="opacity-50">WM: Hyprland</span>
+        <span class="opacity-50">Shell: zsh</span>
+        <span class="opacity-50">Editor: LazyVim</span>
+      </div>
     </div>
 
-    <!-- Name block pinned to bottom of hero -->
-    <div class="absolute bottom-0 left-0 right-0">
-      <div class="max-w-3xl mx-auto px-4 pb-5 flex items-end gap-5">
-        <!-- Avatar ring wrapper – overflows below hero -->
-        <div class="avatar-wrapper relative shrink-0" style="margin-bottom: -56px;">
+    <!-- Name + Avatar block overlapping hero boundary -->
+    <div class="max-w-3xl mx-auto px-4 relative" style="margin-top: -64px; z-index: 10;">
+      <div class="flex items-end gap-5">
+        <!-- Avatar ring wrapper -->
+        <div class="avatar-wrapper relative shrink-0">
           <div class="avatar-ring">
             <Image
               src={avatar}
               alt="Phuc Dang"
-              width={120}
-              height={160}
+              width={360}
+              height={450}
+              quality={100}
               class="avatar-img"
               loading="eager"
             />
@@ -56,7 +60,7 @@ import avatar from "@/assets/images/profile/direct-face.jpg";
         </div>
 
         <!-- Name + tagline -->
-        <div class="pb-3 text-white">
+        <div class="pb-2">
           <h1 class="hero-name">Dang Vo Hong Phuc</h1>
           <p class="hero-sub">Backend Developer · System Design · Arch Linux</p>
         </div>
@@ -65,9 +69,7 @@ import avatar from "@/assets/images/profile/direct-face.jpg";
   </div>
 
   <!-- ── Main content ── -->
-  <main id="main-content" class="max-w-3xl mx-auto px-4 pb-12">
-    <!-- Spacer to account for avatar overflow -->
-    <div style="height: 64px;"></div>
+  <main id="main-content" class="max-w-3xl mx-auto px-4 pt-6 pb-12">
 
     <!-- Skill pills -->
     <div class="pills-row">
@@ -194,17 +196,15 @@ import avatar from "@/assets/images/profile/direct-face.jpg";
     font-weight: 800;
     letter-spacing: -0.02em;
     line-height: 1.2;
-    color: #fff;
-    text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    color: var(--color-foreground, #000);
     margin: 0;
   }
 
   .hero-sub {
     font-family: monospace;
     font-size: 0.82rem;
-    color: #93c5fd;
+    color: var(--color-accent, #38bdf8);
     margin-top: 4px;
-    text-shadow: 0 1px 6px rgba(0,0,0,0.5);
   }
 
   /* ── Avatar ── */
@@ -219,13 +219,13 @@ import avatar from "@/assets/images/profile/direct-face.jpg";
     box-shadow: 0 0 0 1px rgba(99,102,241,0.35), 0 8px 36px rgba(99,102,241,0.3);
   }
 
-  /* Avatar: show the full face — no forced square crop */
+  /* Avatar: show full face & shoulders without bottom cropping */
   .avatar-img {
     display: block;
-    width: 112px;
-    height: 144px;        /* portrait ratio, shows full head + shoulders */
+    width: 120px;
+    height: 150px;
     object-fit: cover;
-    object-position: center 15%; /* nudge slightly up to centre on face */
+    object-position: center top;
     border-radius: 13px;
   }
 
