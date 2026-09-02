@@ -19,7 +19,7 @@ This blog will explore the concepts of **sensors** and **actuators** in the cont
 
 ## Table of contents
 ## Sensors 
-### What is sensors?
+### What are sensors?
 * Sensors are hardware devices that sense the physical world. It can measure one or more properties around and send the information to IoT device.
 * Some common sensors include: 
 1. Temperature sensors - sense air temperature, water temperature, humidity, air pressure.
@@ -95,11 +95,46 @@ python app.py
 
 ### Type of sensors
 #### Analog sensors
+* These sensors receive voltage from the IoT device and adjust it based on physical world properties (e.g. brightness or temperature).
+
+##### Analog-to-Digital Conversion (ADC)
+
+Digital IoT devices only understand binary (`0`s and `1`s). Therefore, analog voltage levels must be converted into digital numbers by an **Analog-to-Digital Converter (ADC)** (often built into the MCU or an expansion board/HAT).
+
+> [!NOTE]
+> **Example of Conversion Process:**
+> 1. **Analog Voltage:** Sensor outputs `1.0V` (on a `3.3V` system).
+> 2. **Scaled Integer:** ADC maps `1.0V` to an integer scale of `0–1023` → **`300`**.
+> 3. **Binary Conversion:** `300` is converted into binary **`0000000100101100`** for the CPU to process.
+
 #### Digital sensors
+
+Unlike analog sensors, **digital sensors** output digital signals (`0`s and `1`s) directly to the IoT device, eliminating the need for an external ADC on the microcontroller or board.
+
+They fall into two main categories:
+
+1. **Simple Binary Sensors (2-State)**
+   * **Example:** *Push buttons* or *switches*.
+   * **How it works:** 
+     * **OFF State:** `0V` output → interpreted directly as **`0`**.
+     * **ON State:** `3.3V` (or `5V`) output → interpreted directly as **`1`**.
+   * **Voltage Threshold:** GPIO pins read binary states directly (e.g., Raspberry Pi GPIO treats voltage `> 1.8V` as **`1`** and `< 1.8V` as **`0`**).
+
+![Simple Digital Button Sensor](@/assets/images/iot/button.png)
+
+2. **Advanced Digital Sensors (On-Board ADC)**
+   * **Example:** *Digital temperature sensors*, *digital cameras*, or *motion sensors*.
+   * **How it works:** Contains an **integrated on-board ADC** that measures physical phenomena, converts it internally into binary bits (`0`s and `1`s), and sends formatted data streams to the IoT device.
+   * **Complex Data:** Allows sending rich, compressed data such as JPEG images or video streams frame-by-frame.
+
+![Digital Temperature Sensor with On-Board ADC](@/assets/images/iot/temperature-as-digital.png)
+
+> [!NOTE]
+> **Key Advantage:** Digital data transmission provides **higher noise immunity**, **consistent precision**, and support for **encrypted payloads** in secure IoT applications.
 
 
 ## Actuators
-### What is actuators?
+### What are actuators?
 ### Use an actuator
 ### Type of actuators
 
