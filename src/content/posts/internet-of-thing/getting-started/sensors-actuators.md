@@ -141,6 +141,8 @@ They fall into two main categories:
 2. Speaker - emit sound
 3. Stepper motor - convert signal into a defined amount of rotation, such as turning a dial 90 degrees.
 
+> [!NOTE]
+> **Actuators** can be seen as an **end devices**.
 ### Use an actuator
 
 In this section, you will add a virtual LED actuator to your IoT setup to create an automated **Smart Nightlight**: when the ambient light drops below `300`, the LED turns **ON**; otherwise, it turns **OFF**.
@@ -205,6 +207,22 @@ python app.py
 > **Verification:** You have created a complete closed-loop IoT system! The sensor senses the environment (light level) and the MCU automatically commands the actuator (LED) to respond.
 
 ### Type of actuators
+
+Just like sensors, actuators are categorized into **analog** or **digital**.
+
+#### Analog Actuators
+
+**Analog actuators** perform physical actions that vary continuously based on the exact voltage supplied to them.
+
+* **Real-world Example:** A *dimmable light bulb* or *variable-speed fan motor*. The brightness or speed changes continuously according to the supplied voltage level (e.g., `0V` = OFF, `1.65V` = 50% brightness, `3.3V` = 100% brightness).
+* **Digital-to-Analog Conversion (DAC):** Because digital IoT devices only process binary (`0`s and `1`s), sending an analog signal requires a **Digital-to-Analog Converter (DAC)** (on the MCU or expansion board) to convert binary bits into an analog voltage.
+
+![Analog Actuator Dimmable Light](@/assets/images/iot/dimmable-light.png)
+
+> [!NOTE]
+> **Quick Summary (ADC vs DAC):**
+> * **ADC (Sensors):** Converts Analog Voltage → Digital Bits (`0`s & `1`s) for the CPU.
+> * **DAC (Actuators):** Converts Digital Bits (`0`s & `1`s) → Analog Voltage for physical devices.
 
 
 
