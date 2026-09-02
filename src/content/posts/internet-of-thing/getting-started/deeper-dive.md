@@ -74,4 +74,23 @@ Microcontrollers interact with the physical world through **General-Purpose Inpu
 > [!TIP]
 > **GPIO Flexibility:** The same pin can be configured via code to function either as an input or an output depending on your project requirements.
 
+### Framework and operating systems
+
+* Due to their low speed and memory size, MCUs don't run an OS — remember MCUs are programmed to perform a very specific task, unlike general purpose PCs or Macs.
+* To program an MCU, you will need to use a **framework** that supports you to build code that the MCU can run, using APIs to talk with other devices.
+
+#### Arduino
+
+![Arduino Logo](@/assets/images/iot/arduino-logo.svg)
+
+**Arduino** is the most popular open-source electronics platform, coded in **C/C++** for fast execution and a small binary footprint on microcontrollers.
+
+An Arduino program (called a **sketch**) revolves around two core functions:
+
+* **`setup()`**: Runs **once** on startup to initialize pins, WiFi, and cloud connections.
+* **`loop()`**: Runs **continuously** to process sensor data and trigger actuators.
+
+> [!NOTE]
+> **Power Saving:** Sketches often include a delay in `loop()` (e.g., `delay(10000)`) allowing the device to sleep and conserve battery between readings.
+
 ## Deeper dive into single-board computers
