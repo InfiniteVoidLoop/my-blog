@@ -141,7 +141,7 @@ They fall into two main categories:
 2. Speaker - emit sound
 3. Stepper motor - convert signal into a defined amount of rotation, such as turning a dial 90 degrees.
 
-> [!NOTE]
+> [!TIP]
 > **Actuators** can be seen as an **end devices**.
 ### Use an actuator
 
@@ -219,10 +219,22 @@ Just like sensors, actuators are categorized into **analog** or **digital**.
 
 ![Analog Actuator Dimmable Light](@/assets/images/iot/dimmable-light.png)
 
-> [!NOTE]
-> **Quick Summary (ADC vs DAC):**
-> * **ADC (Sensors):** Converts Analog Voltage → Digital Bits (`0`s & `1`s) for the CPU.
-> * **DAC (Actuators):** Converts Digital Bits (`0`s & `1`s) → Analog Voltage for physical devices.
+#### Digital Actuators
+
+Unlike analog actuators, **digital actuators** operate directly on digital signals (`0`s and `1`s) sent from the IoT device.
+
+They operate in two primary ways:
+
+1. **Simple 2-State Digital Actuators:**
+   * **Example:** An *LED* or *relay switch*.
+   * **How it works:**
+     * **Signal `1` (High Voltage):** High voltage (e.g., `3.3V` or `5V`) is sent → turns the LED **ON**.
+     * **Signal `0` (Low Voltage):** Voltage drops to `0V` → turns the LED **OFF**.
+
+2. **Advanced Digital Actuators (On-Board DAC):**
+   * **Example:** *Digital servos*, *smart speakers*, or *display screens*.
+   * **How it works:** Contains an **integrated on-board DAC** that accepts structured binary data commands from the MCU and converts them internally into precise analog actions or sound signals.
+
 
 
 
