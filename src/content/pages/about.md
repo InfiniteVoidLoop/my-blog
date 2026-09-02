@@ -1,37 +1,89 @@
 ---
-title: "About"
-description: "A bit about me and this blog."
+title: "About Me"
+description: "Resume and professional background of Dang Vo Hong Phuc — 4th Year Honor Computer Science Student, Backend Engineer & IoT Enthusiast."
 ---
 
-AstroPaper is a minimal, accessible and SEO-friendly blog theme built with [Astro](https://astro.build/) and [Tailwind CSS](https://tailwindcss.com/).
+# Dang Vo Hong Phuc
 
-![Astro Paper](@/assets/images/astropaper-og.jpg)
+> **4th-Year Honor Computer Science Student @ VNU-HCMUS** | **Backend Engineer & IoT Enthusiast**  
+> 📍 Ho Chi Minh City, Vietnam • 📧 [ti20dangvohongphuc@gmail.com](mailto:ti20dangvohongphuc@gmail.com) • 📞 [+84 908 875 619](tel:+84908875619) • 🐙 [GitHub: @InfiniteVoidLoop](https://github.com/InfiniteVoidLoop)
 
-AstroPaper provides a solid foundation for blogs, or even portfolios\_ with full markdown support, built-in dark mode, and a clean layout that works out-of-the-box.
+---
 
-The blog posts in this theme also serve as guides, docs or example articles\_ making AstroPaper a flexible starting point for your next content-driven site.
+## 👨‍💻 Executive Summary
 
-## Features
+Hi! I'm **Phuc**, a senior Computer Science student in the **Honor Program at University of Science, VNU-HCM**. With a strong foundation in competitive programming (ICPC National Honorable Mention, HSGS Silver Medal) and software engineering (ASP.NET Core, Clean Architecture, CQRS), I am currently pursuing **Internet of Things (IoT)**, real-time streaming systems, and high-performance backend architecture.
 
-AstroPaper comes with a set of useful features that make content publishing easy and effective:
+> [!TIP]
+> **Current Focus:** Engineering enterprise backend systems, edge IoT applications, real-time network protocols, and hardware simulation.
 
-- SEO-friendly
-- Fast performance
-- Light & dark mode
-- Highly customizable
-- Organizable blog posts
-- Responsive & accessible
-- Static search with [PageFind](https://pagefind.app/)
-- Automatic social image generation
+---
 
-and so much more.
+## 🛠️ Knowledge & Technical Skills
 
-## Show your support
+* **Programming Languages:** `C/C++`, `C#`, `Python`, `TypeScript / JavaScript`, `Java`
+* **Web & Backend:** `ASP.NET Core (.NET)`, `Clean Architecture`, `CQRS`, `Express.js`, `React`, `Node.js`, `RESTful APIs`
+* **IoT & Embedded Systems:** `Microcontrollers (MCUs)`, `Raspberry Pi (SBCs)`, `CounterFit Simulator`, `RTSP/RTP Protocols`, `Network Programming (TCP/UDP)`
+* **Developer Environment & Tools:** `Linux (Arch Linux)`, `Neovim (LazyVim)`, `Git / GitHub`, `VS Code`, `Vercel`
+* **Core Competencies:** `Algorithms & Data Structures`, `System Architecture`, `Problem-Solving`, `Team Collaboration`
 
-If you like [AstroPaper](https://github.com/satnaing/astro-paper), consider giving it a star ⭐️.
+---
 
-Found a bug 🐛 or have an improvement ✨ in mind? Feel free to open an [issue](https://github.com/satnaing/astro-paper/issues), submit a [pull request](https://github.com/satnaing/astro-paper/pulls) or start a [discussion](https://github.com/satnaing/astro-paper/discussions).
+## 💼 Work Experience & Major Projects
 
-If you find this theme helpful, you can also [sponsor me on GitHub](https://github.com/sponsors/satnaing) or [buy me a coffee](https://buymeacoffee.com/satnaing) to show your support — every penny counts.
+### 🔹 Backend Engineer Fresher
+**ECR Company** | *Feb 2026 – Present*
+* **Enterprise Resource Planning (ERP):** Contributing to backend engineering for an enterprise ERP platform.
+* **Chatbot-SDK (Multi-Tenant RAG Platform):** Built a multi-tenant Retrieval-Augmented Generation (RAG) platform on **ASP.NET Core** following **Clean Architecture** and **CQRS** principles for application integration.
 
-Kyay zuu! 🙏🏼
+---
+
+### 🔹 RTSP/RTP Real-Time Video Streaming System
+*May 2026 – Jun 2026*
+* Developed a real-time video streaming system in **Python** implementing **RTSP/RTP** protocols over TCP/UDP.
+* Built client-side jitter buffering and non-blocking I/O multiplexing for smooth video playback.
+
+---
+
+### 🔹 Taskwise — Full-Stack Task Management Application
+*Oct 2024 – Dec 2025*
+* Developed a responsive web app using **React**, **TypeScript**, and **Firebase Realtime Database**.
+* Implemented secure authentication and task management endpoints with an **Express.js** backend, deployed on **Vercel**.
+
+---
+
+### 🔹 Canonical Huffman Code Compression Tool
+*Sep 2024 – Dec 2024*
+* Implemented a file compression and decompression utility in **C++** using the canonical Huffman coding algorithm.
+
+---
+
+## 🏆 Academic Achievements & Honors
+
+| Award / Competition | Year | Organization / Host |
+| :--- | :---: | :--- |
+| 🏅 **Honorable Mention** | 2023 | ICPC Vietnam National Programming Contest |
+| 🥈 **Silver Medal** in Informatics | 2022 – 2023 | HSGS Olympiad |
+| 🥉 **Bronze Medal** in Informatics | 2021 – 2022 | Northern Coastal Region Olympiad |
+| 🏆 **Second Prize** | 2022 – 2023 | Dong Nai Provincial Excellent Student Competition |
+| 🏆 **Third Prize** | 2021 – 2022 | Dong Nai Provincial Excellent Student Competition |
+| 🎓 **Top 7 VOI Training Squad** (2 consecutive years) | 2022 – 2023 | Luong The Vinh High School for the Gifted |
+
+---
+
+## 🎓 Education
+
+### **University of Science, VNU-HCM**
+*Sep 2023 – Present*  
+**Bachelor of Science in Computer Science** — *Honor Program (Senior / 4th-Year Student)*  
+* **Coursework:** Data Structures & Algorithms, Object-Oriented Programming (OOP), Database Systems, Computer Networks, Network Programming, Computer Systems, Discrete Mathematics, Linear Algebra, Calculus, Soft Skills.
+
+### **Luong The Vinh High School for the Gifted**
+*Sep 2020 – Jun 2023*  
+**Specialized Informatics Class**  
+* **Academic Record:** Grade 10: 8.9/10 • Grade 11: 9.4/10 • Grade 12: 9.0/10
+
+---
+
+> [!NOTE]
+> Feel free to read through my posts on the blog or reach out via email for potential opportunities and discussions! 🤝
