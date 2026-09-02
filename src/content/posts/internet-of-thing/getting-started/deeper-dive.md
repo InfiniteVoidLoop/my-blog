@@ -54,5 +54,15 @@ In the last blog, I already mentioned about **Microcontroller - MCU**. Let's now
 
 ### The Memory
 
+Microcontrollers typically feature two types of memory, which are thousands of times smaller than those in a typical PC:
+
+* **Program Memory (Non-volatile):** Stores your program code. Data is retained even when power is turned off.
+* **RAM (Volatile):** Used while your program runs to store variables and sensor data. Data is reset when power is lost.
+
+> [!NOTE]
+> **RAM Scale:** A typical PC has **8 Gigabytes (GB)** of RAM, whereas a microcontroller may only have **Kilobytes (KB)** (e.g. 192KB) — over 40,000 times smaller!
+
+![RAM Comparison 192KB vs 8GB](@/assets/images/iot/ram-comparison.png)
+
 ### Input/Output (I/O) Connections
 ## Deeper dive into single-board computers
