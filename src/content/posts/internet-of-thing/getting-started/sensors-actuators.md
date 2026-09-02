@@ -135,7 +135,75 @@ They fall into two main categories:
 
 ## Actuators
 ### What are actuators?
+* Actuators are the opposite of sensors. They convert electrical signal from IoT device into interactions with physical world such as emitting light, sound, ...
+* Some common actuators are:
+1. LED - emit light
+2. Speaker - emit sound
+3. Stepper motor - convert signal into a defined amount of rotation, such as turning a dial 90 degrees.
+
 ### Use an actuator
+
+In this section, you will add a virtual LED actuator to your IoT setup to create an automated **Smart Nightlight**: when the ambient light drops below `300`, the LED turns **ON**; otherwise, it turns **OFF**.
+
+> [!NOTE]
+> * **Hardware Concept:** An **LED** (*Light-Emitting Diode*) is a digital actuator that emits light when an electrical voltage is applied.
+> * **Actuator State:** This is a **digital actuator** with 2 binary states: **ON** (`1` / high voltage) and **OFF** (`0` / low voltage).
+
+#### Step-by-step Guide: Connecting and Controlling a Virtual LED Actuator
+
+**Step 1: Create the Virtual LED Actuator in CounterFit**
+1. Open `http://127.0.0.1:5000` in your web browser.
+2. Under **Actuators** (bottom left section):
+   * Set **Actuator Type** to `LED`.
+   * Set **Pin** to `5`.
+   * Click **Add**.
+
+![Create Virtual LED Actuator in CounterFit](@/assets/images/iot/actuator_setup_1.png)
+
+**Step 2: Update Python Code (`app.py`)**
+
+Update your `app.py` script to control the LED based on light sensor readings:
+
+```python
+import time
+from counterfit_connection import CounterFitConnection
+from counterfit_shims_grove.grove_light_sensor_v1_2 import GroveLightSensor
+from counterfit_shims_grove.grove_led import GroveLed
+
+# 1. Connect to local CounterFit simulation server
+CounterFitConnection.init('127.0.0.1', 5000)
+print('Connected to CounterFit server !!!')
+
+# 2. Initialize LED Actuator on Pin 5 & Light Sensor on Pin 0
+led = GroveLed(5)
+light_sensor = GroveLightSensor(0)
+
+# 3. Read light levels and trigger LED conditionally
+while True:
+    light = light_sensor.light
+    print('Light level:', light)
+    time.sleep(1)
+    
+    if light < 300:
+        led.on()
+    else:
+        led.off()
+```
+
+**Step 3: Run and Test the Nightlight**
+1. In your terminal, run:
+```bash
+python app.py
+```
+2. In CounterFit UI under **Sensors -> Light (Pin 0)**, adjust the **Value** slider:
+   * When light level **< 300**, the LED indicator turns **ON** (active color).
+   * When light level **>= 300**, the LED indicator turns **OFF**.
+
+![LED Actuator Controlled in CounterFit UI](@/assets/images/iot/actuator_result_1.png)
+
+> [!TIP]
+> **Verification:** You have created a complete closed-loop IoT system! The sensor senses the environment (light level) and the MCU automatically commands the actuator (LED) to respond.
+
 ### Type of actuators
 
 
