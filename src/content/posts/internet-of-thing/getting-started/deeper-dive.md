@@ -65,4 +65,13 @@ Microcontrollers typically feature two types of memory, which are thousands of t
 ![RAM Comparison 192KB vs 8GB](@/assets/images/iot/ram-comparison.png)
 
 ### Input/Output (I/O) Connections
+
+Microcontrollers interact with the physical world through **General-Purpose Input/Output (GPIO)** pins. These pins are configured in software to handle data flow:
+
+* **Input Pins (🧠 ⬅️):** Used to read incoming values and data from **sensors** (e.g., temperature, humidity, light).
+* **Output Pins (🧠 ➡️):** Used to send control signals and instructions to **actuators** (e.g., turning on a light, driving a motor, starting a heater).
+
+> [!TIP]
+> **GPIO Flexibility:** The same pin can be configured via code to function either as an input or an output depending on your project requirements.
+
 ## Deeper dive into single-board computers
