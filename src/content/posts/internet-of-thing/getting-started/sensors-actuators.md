@@ -15,6 +15,9 @@ description: "A comprehensive guide to understanding sensors and actuators in In
 ---
 This blog will explore the concepts of **sensors** and **actuators** in the context of **Internet of Things (IoT)**, their types, applications, and how they work together in IoT systems.
 
+> [!NOTE]
+> 📌 **IoT Series (Part 3 of 3):** This is the third article in our IoT series. Catch up on hardware concepts in **[Part 2: Deeper Dive into Internet of Things (IoT)](/posts/internet-of-thing/getting-started/deeper-dive-iot/)**.
+
 ![Sensors and Actuators](/posts/internet-of-thing/getting-started/sensors-actuators-iot/index.png)
 
 ## Table of contents
@@ -234,6 +237,16 @@ They operate in two primary ways:
 2. **Advanced Digital Actuators (On-Board DAC):**
    * **Example:** *Digital servos*, *smart speakers*, or *display screens*.
    * **How it works:** Contains an **integrated on-board DAC** that accepts structured binary data commands from the MCU and converts them internally into precise analog actions or sound signals.
+
+> [!TIP]
+> Digital actuators simplify hardware wiring because the microcontroller can drive binary states or send digital communication packets directly without requiring an external DAC board.
+
+---
+
+## 📖 Series Navigation
+
+👈 Back to **[Part 2: Deeper Dive into Internet of Things (IoT)](/posts/internet-of-thing/getting-started/deeper-dive-iot/)**  
+🏠 Return to **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
 
 
 

@@ -14,7 +14,9 @@ description: "A friendly guide to understanding the deeper concepts of Internet 
 This blog will go deep down into concepts around **Internet of Things (IoT)**, its applications, and how to get started with IoT development.
 
 > [!NOTE]
-> 📌 **IoT Series (Part 2 of 2):** This is the second article in our IoT series. Catch up on the basics in **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**.
+> 📌 **IoT Series (Part 2 of 3):** This is the second article in our IoT series.
+> * 👈 Previous: **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
+> * 👉 Next: **[Part 3: Sensors and Actuators in Internet of Things (IoT)](/posts/internet-of-thing/getting-started/sensors-actuators-iot/)**
 
 ![Deeper Dive into Internet Of Things](/posts/internet-of-thing/getting-started/deeper-dive-iot/index.png)
 
@@ -122,7 +124,8 @@ Because SBCs run a full OS, they support virtually any programming language:
 
 ---
 
-## 📖 Previous Article in Series
+## 📖 Series Navigation
 
-👈 Back to **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
+👈 Back to **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**  
+👉 Continue to **[Part 3: Sensors and Actuators in Internet of Things (IoT)](/posts/internet-of-thing/getting-started/sensors-actuators-iot/)**
 
