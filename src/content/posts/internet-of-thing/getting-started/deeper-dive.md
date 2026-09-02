@@ -94,3 +94,25 @@ An Arduino program (called a **sketch**) revolves around two core functions:
 > **Power Saving:** Sketches often include a delay in `loop()` (e.g., `delay(10000)`) allowing the device to sleep and conserve battery between readings.
 
 ## Deeper dive into single-board computers
+
+Unlike microcontrollers, **Single-Board Computers (SBCs)** are full-featured computers running complete operating systems (typically Linux).
+
+### The Raspberry Pi Ecosystem
+
+![Raspberry Pi Logo](@/assets/images/iot/raspberry-pi-logo.png)
+
+Created by the UK-based Raspberry Pi Foundation, the **Raspberry Pi** is the most popular SBC for IoT development. All variants run **Raspberry Pi OS** (Debian Linux) on ARM-based processors.
+
+#### Key Variants:
+* **Raspberry Pi 4B (~$35):** Quad-core 1.5GHz CPU, 2–8GB RAM, 4K dual-HDMI, USB 3.0, and 40 GPIO pins.
+* **Raspberry Pi Zero / Zero W (~$5–$10):** Ultra-compact, single-core 1GHz CPU, 512MB RAM, and 40 GPIO pins for low-power projects.
+* **Compute Module:** Compact version built without consumer ports, designed for commercial IoT hardware integration.
+
+![Raspberry Pi 4B](@/assets/images/iot/raspberry-pi-4.jpg)
+
+### Programming Single-Board Computers
+
+Because SBCs run a full OS, they support virtually any programming language:
+
+* **Python** is the primary choice for Pi IoT applications due to extensive library support and **HATs** (hardware expansion boards connected via GPIO pins).
+* **Edge & Industrial Use:** SBCs are capable of running complex tasks locally, including edge computing and machine learning models.
