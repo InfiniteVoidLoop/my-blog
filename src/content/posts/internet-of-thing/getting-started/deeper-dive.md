@@ -41,5 +41,18 @@ One typical example is the **smart thermostat** - device that has a temperature 
 ![AI Thermostat](@/assets/images/iot/smarter-thermostat.png)
 
 ## Deeper dive into microcontrollers
+In the last blog, I already mentioned about **Microcontroller - MCU**. Let's now deeper dive into it.
+### The CPU
+* The **brain** of the microcontroller, CPU can have multiple cores that can work to run your code.
+* CPUs rely on a clock to tick many millions or billions of times per second. Each tick, or cycle is the actions that CPU can take.
+* CPU speed is measured in **Hertz (Hz)**, a standard unit where 1 Hz means one cycle or clock tick per second.
+> [!NOTE] 
+> * CPU speeds are often at **megahertz (MHz)** or **gigahertz (GHz)**. 1 MHz = 1 million cycles per second, 1 GHz = 1 billion cycles per second.
+> * CPUs execute programs using the **fetch-decode-execute** cycle. It executes using arithmetic logic unit (ALU) to perform addition from 2 registers.
 
+![Fetch Decode Execute Cycle](@/assets/images/iot/fetch-decode-execute.png)
+
+### The Memory
+
+### Input/Output (I/O) Connections
 ## Deeper dive into single-board computers
