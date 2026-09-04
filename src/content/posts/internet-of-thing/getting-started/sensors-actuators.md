@@ -102,7 +102,8 @@ python app.py
 
 ##### Analog-to-Digital Conversion (ADC)
 
-Digital IoT devices only understand binary (`0`s and `1`s). Therefore, analog voltage levels must be converted into digital numbers by an **Analog-to-Digital Converter (ADC)** (often built into the MCU or an expansion board/HAT).
+* Digital IoT devices only understand binary (`0`s and `1`s). Therefore, analog voltage levels must be converted into digital numbers by an **Analog-to-Digital Converter (ADC)** (often built into the MCU or an expansion board/HAT).
+* Bit resolution of ADC usually 10 bits, converting analog values into digital values.
 
 > [!NOTE]
 > **Example of Conversion Process:**
