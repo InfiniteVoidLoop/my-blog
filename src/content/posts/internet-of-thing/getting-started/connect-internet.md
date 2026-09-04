@@ -40,3 +40,24 @@ MQTT has a single broker and multiple clients. All clients connect to the broker
 #### Connect IoT device into MQTT
 We will look how to connect IoT nightlight to the internet and allow it to be remotely controlled.
 ![MQTT_Assignment_1](@/assets/images/iot/assignment-1-internet-flow.png)
+
+##### 1. Add library to communicate over MQTT
+```Python
+import paho.mqtt.client as mqtt
+```
+                               
+##### 2. Add client_name unique (user older version of MQTT)
+```Python
+
+id = '680a5957-ed79-4b84-be34-6c3910a8237c'
+client_name = id + 'nightlight_client'
+
+mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION1, client_id=client_name)
+```
+
+##### 3. Connect to MQTT broker and starts loop that runs in a background thread listening for messages on any subscribed topics
+```Python
+mqtt_client.connect('test.mosquitto.org')
+mqtt_client.loop_start()
+```
+
