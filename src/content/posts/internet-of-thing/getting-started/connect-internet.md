@@ -14,7 +14,7 @@ description: "A friendly guide to connecting your IoT device to the Internet, co
 This blog will introduce some of the communication protocols that IoT devices can use to connect to the cloud, and types of data they might send or receive.
 
 ![Connect Device into Internet](/posts/internet-of-thing/getting-started/deeper-dive-iot/index.png)
-## Tables of contents
+## Table of contents
 ## Introduction
 The **I** in IoT stands for **Internet** - the cloud connectivity can enable a lot of features for your IoT devices from gathering measure data from *sensors*, to sending messages to control the *actuators*.
 
@@ -41,12 +41,12 @@ MQTT has a single broker and multiple clients. All clients connect to the broker
 We will look how to connect IoT nightlight to the internet and allow it to be remotely controlled.
 ![MQTT_Assignment_1](@/assets/images/iot/assignment-1-internet-flow.png)
 
-##### 1. Add library to communicate over MQTT
+1. Add library to communicate over MQTT
 ```Python
 import paho.mqtt.client as mqtt
 ```
                                
-##### 2. Add client_name unique (user older version of MQTT)
+2. Add client_name unique (user older version of MQTT)
 ```Python
 
 id = '680a5957-ed79-4b84-be34-6c3910a8237c'
@@ -55,9 +55,49 @@ client_name = id + 'nightlight_client'
 mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION1, client_id=client_name)
 ```
 
-##### 3. Connect to MQTT broker and starts loop that runs in a background thread listening for messages on any subscribed topics
+3. Connect to MQTT broker and starts loop that runs in a background thread listening for messages on any subscribed topics
 ```Python
 mqtt_client.connect('test.mosquitto.org')
 mqtt_client.loop_start()
 ```
+
+#### Deeper dive into MQTT
+##### Hierarchy of MQTT topics
+* You can send temperature messages to the topic **/telemetry/temperature** and humidity messages to the **/telemetry/humidity**.
+* Then in your cloud app subscribe to the **/telemetry/* ** topic to receive both temperature and humidity messages.
+
+##### Quality of Service (QoS)
+**This determines the guarantee of messages being received.**
+* **At most once** - the message is sent only once and the client take no additional steps to acknowledge the message. 
+* **At least once** - the message is re-tried by the sender multiple times until acknowledge is received.  
+* **Exactly once** - the sender and receiver engage in a two-level handshake to ensure one copy of the message is received.
+
+#### Send telemetry from your IoT device 
+In this example, we will send telemetry message from your Raspberry Pi or virtual IoT device to an MQTT broker.
+
+##### Publish telemetry
+1. If you are using a virtual IoT device Raspberry Pi, you won't need to run a virtual environment.
+2. Import the following:
+```Python
+import json
+```
+3. Add client topic
+```Python
+client_telemtry_topic = id - '/telemtry'
+```
+```
+```
+4. Publish telemetry message to the broker
+```Python
+while True:
+    light = light_sensor.light
+    telemetry = json.dumps({'light' : light})
+    print("Sending telemetry ", telemetry)
+
+    mqtt_client.publish(client_telemetry_topic, telemetry)
+
+    time.sleep(5)
+```
+
+##### Receive telemetry
 
