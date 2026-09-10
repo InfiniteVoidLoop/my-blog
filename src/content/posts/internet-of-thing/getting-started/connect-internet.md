@@ -141,29 +141,115 @@ while True:
     time.sleep(2)
 ```
 
-#### Step-by-Step Breakdown of the Server Code
+##### Send commands from the server
 
-* **MQTT Client Initialization:** We create an MQTT client instance with a unique ID (`nightlight_server`) and `CallbackAPIVersion.VERSION2`.
-* **Connecting to Broker:** Connecting to `test.mosquitto.org` opens a persistent connection to the public MQTT broker.
-* **Background Network Loop (`loop_start()`):** Spawns a background thread to handle network events, re-connections, and callback dispatching automatically.
-* **Topic Subscription (`subscribe()`):** Tells the broker that our server wants to receive all messages sent to `client_telemetry_topic`.
-* **Callback Handler (`on_message`):** Whenever a telemetry payload is published by the IoT device, `handle_telemetry` decodes the binary payload into a UTF-8 string and parses the JSON dictionary (`{'light': <value>}`).
+Once the server receives telemetry data from the IoT device, it can process the data and send commands back to the device to control actuators (such as turning an LED light on or off).
 
-#### Testing Client and Server Communication
-
-You can test both client and server scripts together using two terminal windows:
-
-1. **Start the Server** (Terminal 1):
-   ```bash
-   python3 server.py
-   ```
-2. **Start the IoT Device Client** (Terminal 2):
-   ```bash
-   python3 app.py
-   ```
-
-When the device reads a light level and publishes telemetry, the server will immediately receive and display the message:
-```text
-Received telemetry message: {'light': 0}
+1. Define the command topic in `server.py`:
+```python
+server_command_topic = id + '/command'
 ```
 
+2. Update `handle_telemetry` to evaluate the light level and publish a command back to the device:
+```python
+command = {'led_on': payload['light'] < 300}
+print("Sending command message:", command)
+mqtt_client.publish(server_command_topic, json.dumps(command))
+```
+
+Here is the complete `server.py` script:
+
+```python
+import json
+import time
+import paho.mqtt.client as mqtt
+
+id = '680a5957-ed79-4b84-be34-6c3910a8237c'
+client_name = id + 'nightlight_server'
+client_telemetry_topic = id + '/telemetry'
+server_command_topic = id + '/command'
+
+mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id=client_name)
+mqtt_client.connect('test.mosquitto.org')
+mqtt_client.loop_start()
+
+def handle_telemetry(client, userdata, message):
+    payload = json.loads(message.payload.decode())
+    print("Received telemetry message:", payload)
+    command = {'led_on': payload['light'] < 300}
+    print("Sending command message:", command)
+    mqtt_client.publish(server_command_topic, json.dumps(command))
+
+mqtt_client.subscribe(client_telemetry_topic)
+mqtt_client.on_message = handle_telemetry
+
+while True:
+    time.sleep(2)
+```
+
+##### Receive and process commands on the device
+
+To allow the IoT device to respond to commands sent from the server, update `app.py` to subscribe to the command topic and register a callback handler.
+
+1. Define `handle_command` in `app.py` to control the LED actuator based on the received payload:
+```python
+def handle_command(client, userdata, message):
+    payload = json.loads(message.payload.decode())
+    print("Received command message:", payload)
+    if payload['led_on']:
+        led.on()
+    else:
+        led.off()
+```
+
+2. Subscribe to the command topic and set the `on_message` callback:
+```python
+mqtt_client.subscribe(server_command_topic)
+mqtt_client.on_message = handle_command
+```
+
+Here is the complete `app.py` script for the device:
+
+```python
+import time
+import json
+import paho.mqtt.client as mqtt
+from counterfit_connection import CounterFitConnection
+from counterfit_shims_grove.grove_light_sensor_v1_2 import GroveLightSensor
+from counterfit_shims_grove.grove_led import GroveLed
+
+CounterFitConnection.init('127.0.0.1', 5000)
+print('Connected to CounterFit server !!!')
+
+led = GroveLed(5)
+light_sensor = GroveLightSensor(0)
+
+id = '680a5957-ed79-4b84-be34-6c3910a8237c'
+client_name = id + 'nightlight_client'
+client_telemetry_topic = id + '/telemetry'
+server_command_topic = id + '/command'
+
+mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id=client_name)
+mqtt_client.connect('test.mosquitto.org')
+
+def handle_command(client, userdata, message):
+    payload = json.loads(message.payload.decode())
+    print("Received command message:", payload)
+    if payload['led_on']:
+        led.on()
+    else:
+        led.off()
+
+mqtt_client.subscribe(server_command_topic)
+mqtt_client.on_message = handle_command
+
+mqtt_client.loop_start()
+print("MQTT connected!")
+
+while True:
+    light = light_sensor.light
+    telemetry_message = json.dumps({'light': light})
+    print("Sending telemetry message:", telemetry_message)
+    mqtt_client.publish(client_telemetry_topic, telemetry_message)
+    time.sleep(5)
+```
