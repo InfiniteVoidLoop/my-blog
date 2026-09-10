@@ -16,7 +16,9 @@ description: "A comprehensive guide to understanding sensors and actuators in In
 This blog will explore the concepts of **sensors** and **actuators** in the context of **Internet of Things (IoT)**, their types, applications, and how they work together in IoT systems.
 
 > [!NOTE]
-> 📌 **IoT Series (Part 3 of 3):** This is the third article in our IoT series. Catch up on hardware concepts in **[Part 2: Deeper Dive into Internet of Things (IoT)](/posts/internet-of-thing/getting-started/deeper-dive-iot/)**.
+> 📌 **IoT Series (Part 3 of 4):** This is the third article in our 4-part IoT series.
+> * 👈 Previous: **[Part 2: Deeper Dive into Internet of Things (IoT)](/posts/internet-of-thing/getting-started/deeper-dive-iot/)**
+> * 👉 Next: **[Part 4: Connect your device to the Internet](/posts/internet-of-thing/getting-started/iot-connect-internet/)**
 
 ![Sensors and Actuators](/posts/internet-of-thing/getting-started/sensors-actuators-iot/index.png)
 
@@ -102,7 +104,8 @@ python app.py
 
 ##### Analog-to-Digital Conversion (ADC)
 
-Digital IoT devices only understand binary (`0`s and `1`s). Therefore, analog voltage levels must be converted into digital numbers by an **Analog-to-Digital Converter (ADC)** (often built into the MCU or an expansion board/HAT).
+* Digital IoT devices only understand binary (`0`s and `1`s). Therefore, analog voltage levels must be converted into digital numbers by an **Analog-to-Digital Converter (ADC)** (often built into the MCU or an expansion board/HAT).
+* Bit resolution of ADC usually 10 bits, converting analog values into digital values.
 
 > [!NOTE]
 > **Example of Conversion Process:**
@@ -246,9 +249,10 @@ They operate in two primary ways:
 ## 📖 Series Navigation
 
 👈 Back to **[Part 2: Deeper Dive into Internet of Things (IoT)](/posts/internet-of-thing/getting-started/deeper-dive-iot/)**  
-🏠 Return to **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
+👉 Continue to **[Part 4: Connect your device to the Internet](/posts/internet-of-thing/getting-started/iot-connect-internet/)**
 
-
-
-
-
+### 📚 Complete IoT Getting Started Series
+1. **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
+2. **[Part 2: Deeper Dive into Internet of Things (IoT)](/posts/internet-of-thing/getting-started/deeper-dive-iot/)**
+3. **[Part 3: Sensors and Actuators in Internet of Things (IoT)](/posts/internet-of-thing/getting-started/sensors-actuators-iot/)**
+4. **[Part 4: Connect your device to the Internet](/posts/internet-of-thing/getting-started/iot-connect-internet/)**
