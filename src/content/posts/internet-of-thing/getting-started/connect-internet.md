@@ -13,6 +13,11 @@ description: "A friendly guide to connecting your IoT device to the Internet, co
 ---
 This blog will introduce some of the communication protocols that IoT devices can use to connect to the cloud, and types of data they might send or receive.
 
+> [!NOTE]
+> 📌 **IoT Series (Part 4 of 4):** This is the fourth article in our 4-part IoT series.
+> * 👈 Previous: **[Part 3: Sensors and Actuators in Internet of Things (IoT)](/posts/internet-of-thing/getting-started/sensors-actuators-iot/)**
+> * 🏠 Start: **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
+
 ![Connect Device into Internet](/posts/internet-of-thing/getting-started/deeper-dive-iot/index.png)
 ## Table of contents
 ## Introduction
@@ -253,3 +258,17 @@ while True:
     mqtt_client.publish(client_telemetry_topic, telemetry_message)
     time.sleep(5)
 ```
+
+---
+
+## 📖 Series Navigation
+
+👈 Back to **[Part 3: Sensors and Actuators in Internet of Things (IoT)](/posts/internet-of-thing/getting-started/sensors-actuators-iot/)**  
+🏠 Return to **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
+
+### 📚 Complete IoT Getting Started Series
+1. **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
+2. **[Part 2: Deeper Dive into Internet of Things (IoT)](/posts/internet-of-thing/getting-started/deeper-dive-iot/)**
+3. **[Part 3: Sensors and Actuators in Internet of Things (IoT)](/posts/internet-of-thing/getting-started/sensors-actuators-iot/)**
+4. **[Part 4: Connect your device to the Internet](/posts/internet-of-thing/getting-started/iot-connect-internet/)**
+
