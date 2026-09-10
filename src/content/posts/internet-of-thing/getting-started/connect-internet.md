@@ -83,15 +83,13 @@ import json
 ```
 3. Add client topic
 ```Python
-client_telemtry_topic = id - '/telemtry'
-```
-```
+client_telemetry_topic = id + '/telemetry'
 ```
 4. Publish telemetry message to the broker
 ```Python
 while True:
     light = light_sensor.light
-    telemetry = json.dumps({'light' : light})
+    telemetry = json.dumps({'light': light})
     print("Sending telemetry ", telemetry)
 
     mqtt_client.publish(client_telemetry_topic, telemetry)
@@ -99,5 +97,73 @@ while True:
     time.sleep(5)
 ```
 
-##### Receive telemetry
+##### Receive telemetry on the server
+
+To receive telemetry data sent from your IoT device, you can set up a server script that subscribes to the telemetry topic on the MQTT broker.
+
+1. Create a server script (`server.py`) and import the required libraries:
+```python
+import json
+import time
+import paho.mqtt.client as mqtt
+```
+
+2. Set up unique Client ID and Topic (must match the ID used on the device):
+```python
+id = '680a5957-ed79-4b84-be34-6c3910a8237c'
+client_name = id + 'nightlight_server'
+client_telemetry_topic = id + '/telemetry'
+```
+
+3. Connect to the MQTT broker and start the network loop in the background:
+```python
+mqtt_client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2, client_id=client_name)
+mqtt_client.connect('test.mosquitto.org')
+mqtt_client.loop_start()
+```
+
+4. Define a callback function `handle_telemetry` to handle incoming messages:
+```python
+def handle_telemetry(client, userdata, message):
+    telemetry_message = json.loads(message.payload.decode())
+    print("Received telemetry message:", telemetry_message)
+```
+
+5. Subscribe to the telemetry topic and attach the callback:
+```python
+mqtt_client.subscribe(client_telemetry_topic)
+mqtt_client.on_message = handle_telemetry
+```
+
+6. Keep the server script running:
+```python
+while True:
+    time.sleep(2)
+```
+
+#### Step-by-Step Breakdown of the Server Code
+
+* **MQTT Client Initialization:** We create an MQTT client instance with a unique ID (`nightlight_server`) and `CallbackAPIVersion.VERSION2`.
+* **Connecting to Broker:** Connecting to `test.mosquitto.org` opens a persistent connection to the public MQTT broker.
+* **Background Network Loop (`loop_start()`):** Spawns a background thread to handle network events, re-connections, and callback dispatching automatically.
+* **Topic Subscription (`subscribe()`):** Tells the broker that our server wants to receive all messages sent to `client_telemetry_topic`.
+* **Callback Handler (`on_message`):** Whenever a telemetry payload is published by the IoT device, `handle_telemetry` decodes the binary payload into a UTF-8 string and parses the JSON dictionary (`{'light': <value>}`).
+
+#### Testing Client and Server Communication
+
+You can test both client and server scripts together using two terminal windows:
+
+1. **Start the Server** (Terminal 1):
+   ```bash
+   python3 server.py
+   ```
+2. **Start the IoT Device Client** (Terminal 2):
+   ```bash
+   python3 app.py
+   ```
+
+When the device reads a light level and publishes telemetry, the server will immediately receive and display the message:
+```text
+Received telemetry message: {'light': 0}
+```
 
