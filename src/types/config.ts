@@ -33,6 +33,19 @@ interface PostsConfig {
   scheduledPostMargin?: number;
 }
 
+export interface GiscusConfig {
+  enabled: boolean;
+  repo: string;
+  repoId: string;
+  category: string;
+  categoryId: string;
+  mapping?: "pathname" | "url" | "title" | "og:title";
+  reactionsEnabled?: "1" | "0";
+  emitMetadata?: "1" | "0";
+  inputPosition?: "top" | "bottom";
+  lang?: string;
+}
+
 interface FeaturesConfig {
   /** Enable light/dark mode toggle. Defaults to true. */
   lightAndDarkMode?: boolean;
@@ -59,6 +72,8 @@ interface FeaturesConfig {
    * Set to false to disable search entirely.
    */
   search?: "pagefind" | false;
+  /** Giscus comment system configuration. */
+  giscus?: GiscusConfig;
 }
 
 interface SocialLink {
@@ -120,7 +135,7 @@ type ResolvedSiteConfig = Required<
 export interface ResolvedAstroPaperConfig {
   site: ResolvedSiteConfig;
   posts: Required<PostsConfig>;
-  features: Required<FeaturesConfig>;
+  features: Required<Omit<FeaturesConfig, "giscus">> & { giscus?: GiscusConfig };
   socials: SocialLink[];
   shareLinks: ShareLink[];
 }
