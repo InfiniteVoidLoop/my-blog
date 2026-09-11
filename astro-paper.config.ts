@@ -27,6 +27,18 @@ export default defineAstroPaperConfig({
       url: "https://github.com/satnaing/astro-paper/edit/main/",
     },
     search: "pagefind",
+    giscus: {
+      enabled: true,
+      repo: "InfiniteVoidLoop/my-blog",
+      repoId: "R_kgDOTaBIoQ",
+      category: "Announcements",
+      categoryId: "DIC_kwDOTaBIoc4DFY-t",
+      mapping: "pathname",
+      reactionsEnabled: "1",
+      emitMetadata: "0",
+      inputPosition: "bottom",
+      lang: "en",
+    },
   },
   socials: [
     { name: "github",   url: "https://github.com/InfiniteVoidLoop" },
