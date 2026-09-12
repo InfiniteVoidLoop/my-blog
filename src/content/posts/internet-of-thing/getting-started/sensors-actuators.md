@@ -16,7 +16,7 @@ description: "A comprehensive guide to understanding sensors and actuators in In
 This blog will explore the concepts of **sensors** and **actuators** in the context of **Internet of Things (IoT)**, their types, applications, and how they work together in IoT systems.
 
 > [!NOTE]
-> 📌 **IoT Series (Part 3 of 4):** This is the third article in our 4-part IoT series.
+> 📌 **IoT Series (Part 3 of 5):** This is the third article in our 5-part IoT series.
 > * 👈 Previous: **[Part 2: Deeper Dive into Internet of Things (IoT)](/posts/internet-of-thing/getting-started/deeper-dive-iot/)**
 > * 👉 Next: **[Part 4: Connect your device to the Internet](/posts/internet-of-thing/getting-started/iot-connect-internet/)**
 
@@ -256,3 +256,4 @@ They operate in two primary ways:
 2. **[Part 2: Deeper Dive into Internet of Things (IoT)](/posts/internet-of-thing/getting-started/deeper-dive-iot/)**
 3. **[Part 3: Sensors and Actuators in Internet of Things (IoT)](/posts/internet-of-thing/getting-started/sensors-actuators-iot/)**
 4. **[Part 4: Connect your device to the Internet](/posts/internet-of-thing/getting-started/iot-connect-internet/)**
+5. **[Part 5: Overview of Physical Works in IoT](/posts/internet-of-thing/getting-started/overview-physical-works-iot/)**

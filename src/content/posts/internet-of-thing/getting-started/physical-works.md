@@ -13,6 +13,11 @@ description: "A friendly guide to understanding the physical works in Internet o
 ---
 This blog will provide an overview of the physical layer of IoT devices and how microcontrollers interact with hardware components via GPIO.
 
+> [!NOTE]
+> 📌 **IoT Series (Part 5 of 5):** This is the final article in our 5-part IoT series.
+> * 👈 Previous: **[Part 4: Connect your device to the Internet](/posts/internet-of-thing/getting-started/iot-connect-internet/)**
+> * 🏠 Start: **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
+
 ![Overview of Physical Work](/posts/internet-of-thing/getting-started/overview-physical-works-iot/index.png)
 
 ## Table of contents
