@@ -81,6 +81,10 @@ Microcontrollers use serial protocols to communicate with sensors, displays, and
 
 ---
 
+### 4. Wireless Protocols
+* IoT devices can also communicate over wireless.
+* BLE, WiFi, LoRa, Zigbee and 5G are common wireless protocols used in IoT.
+
 ### ⚡ Quick Protocol Comparison
 
 | Feature | **UART** | **I²C** | **SPI** |
