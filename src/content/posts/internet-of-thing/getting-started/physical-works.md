@@ -69,13 +69,15 @@ Microcontrollers use serial protocols to communicate with sensors, displays, and
 ---
 
 ### 3. SPI (Serial Peripheral Interface)
-* **What it is:** A 4-wire synchronous protocol designed for ultra-high-speed data transfers.
+* **What it is:** A synchronous protocol designed for ultra-high-speed data transfers across multiple peripherals using dedicated Chip Select lines.
 * **Signal Wires (4+):**
-  * **MOSI (Master Out Slave In):** Controller sends data to peripheral.
-  * **MISO (Master In Slave Out):** Peripheral sends data to controller.
-  * **SCK (Serial Clock):** High-speed clock line.
-  * **CS / SS (Chip Select):** Enables the specific target device.
-* **Key Advantage:** Extremely fast full-duplex communication (ideal for LCD screens, SD cards, and flash memory).
+  * **COPI (Controller Out Peripheral In):** Controller sends data to peripheral (formerly MOSI).
+  * **CIPO (Controller In Peripheral Out):** Peripheral sends data to controller (formerly MISO).
+  * **SCLK (Serial Clock):** Clock signal driven by the controller to synchronize data transfer.
+  * **CS / CS1, CS2... (Chip Select):** Dedicated enable lines used by the controller to select and talk to specific target peripherals on the bus.
+* **Key Advantage:** Extremely fast full-duplex communication (ideal for LCD screens, SD cards, and high-speed flash memory).
+
+![SPI Communication](@/assets/images/iot/spi.png)
 
 ---
 
@@ -84,8 +86,8 @@ Microcontrollers use serial protocols to communicate with sensors, displays, and
 | Feature | **UART** | **I²C** | **SPI** |
 | :--- | :--- | :--- | :--- |
 | **Topology** | Point-to-Point (1 to 1) | Multi-Device Bus (1 to Many) | Multi-Device Bus (1 to Many) |
-| **Signal Wires** | **2** (TX, RX) | **2** (SDA, SCL) | **4+** (MOSI, MISO, SCK, CS) |
-| **Clock Line** | None (Asynchronous) | **SCL** (Synchronous) | **SCK** (Synchronous) |
+| **Signal Wires** | **2** (TX, RX) | **2** (SDA, SCL) | **4+** (COPI, CIPO, SCLK, CS) |
+| **Clock Line** | None (Asynchronous) | **SCL** (Synchronous) | **SCLK** (Synchronous) |
 | **Data Flow** | Full-Duplex | Half-Duplex | Full-Duplex |
 | **Speed** | Slow (~115.2 kbps) | Moderate (Up to 3.4 Mbps) | Very Fast (10 – 100+ Mbps) |
 | **Best For** | GPS modules, PC serial, Bluetooth | Temp/Light sensors, OLEDs | SD Cards, Color Displays, Flash |
