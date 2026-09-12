@@ -18,7 +18,7 @@ This blog will introduce some of the communication protocols that IoT devices ca
 > * 👈 Previous: **[Part 3: Sensors and Actuators in Internet of Things (IoT)](/posts/internet-of-thing/getting-started/sensors-actuators-iot/)**
 > * 🏠 Start: **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
 
-![Connect Device into Internet](/posts/internet-of-thing/getting-started/deeper-dive-iot/index.png)
+![Connect Device into Internet](/posts/internet-of-thing/getting-started/iot-connect-internet/index.png)
 ## Table of contents
 ## Introduction
 The **I** in IoT stands for **Internet** - the cloud connectivity can enable a lot of features for your IoT devices from gathering measure data from *sensors*, to sending messages to control the *actuators*.
