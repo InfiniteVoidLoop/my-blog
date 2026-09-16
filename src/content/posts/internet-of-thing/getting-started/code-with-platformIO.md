@@ -111,6 +111,28 @@ Key directories & files:
 Super clean and easy setup! Now you are ready to write code and flash your ESP32 effortlessly. 🎉
 
 ---
+## PlatformIO Neovim's plugin Commands 📝
+---
+
+## Essential PlatformIO CLI Commands ⚡
+
+PlatformIO Core provides the `pio run` command to process, build, and flash your projects:
+
+```bash
+# Build all environments defined in platformio.ini
+pio run
+
+# Build and flash firmware to all connected devices
+pio run --target upload
+
+# Clean build artifacts (delete compiled objects)
+pio run --target clean
+
+# Build & upload for a specific board environment only (e.g. esp32dev)
+pio run -e esp32dev -t upload
+```
+
+---
 
 ## 📖 Series Navigation
 
