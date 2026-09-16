@@ -112,9 +112,34 @@ Super clean and easy setup! Now you are ready to write code and flash your ESP32
 
 ## PlatformIO Neovim's plugin Commands 📝
 
-The [`nvim-platformio.lua`](https://github.com/anurag3301/nvim-platformio.lua) plugin provides convenient Neovim commands that wrap standard PlatformIO Core (CLI) commands, saving you from switching to an external terminal:
+The [`nvim-platformio.lua`](https://github.com/anurag3301/nvim-platformio.lua) plugin provides convenient commands and an interactive popup menu that wrap standard PlatformIO Core (CLI) commands:
 
-### 1. `:Piolib` — Library Manager 📦
+![General PlatformIO Commands Menu](@/assets/images/iot/general-command-platform-plugin.png)
+
+### 🔄 The Standard Embedded Dev Workflow
+When developing microcontroller firmware, you follow this 3-step loop:
+1. **Build Code:** Compile your C++ code to verify there are no syntax or compilation errors.
+2. **Upload Firmware:** Flash the compiled binary onto your microcontroller via USB.
+3. **Monitor Output:** Open the serial terminal to view `Serial.println()` output and debug live runtime logs.
+
+---
+
+### ⚡ General Plugin Commands & CLI Wrappers
+
+| Plugin Action | Purpose / Description | Underlying CLI Wrapper |
+| :--- | :--- | :--- |
+| **Build** | Compiles project environments and verifies code | `pio run` |
+| **Upload** | Compiles & flashes firmware directly to device | `pio run --target upload` |
+| **Monitor** | Opens live serial monitor to read device output | `pio device monitor` |
+| **Clean** | Removes compiled object files to free cache | `pio run --target clean` |
+| **Full Clean** | Wipes all build artifacts and cached dependencies | `pio run -t fullclean` |
+| **Device List** | Scans and lists active connected serial ports | `pio device list` |
+
+---
+
+### 📦 Dedicated Neovim Plugin Commands
+
+#### 1. `:Piolib` — Library Manager
 * **CLI Wrapper:** `pio pkg search` / `pio pkg install`
 * **Purpose:** Search and manage C/C++ libraries from the PlatformIO registry directly within Neovim.
 
@@ -126,7 +151,7 @@ Selecting a library displays its info, dependencies, and lets you add it straigh
 
 ---
 
-### 2. `:Piolsserial` — List Serial Ports 🔌
+#### 2. `:Piolsserial` — List Serial Ports 🔌
 * **CLI Wrapper:** `pio device list`
 * **Purpose:** Scans and lists all connected hardware serial ports (`COMx` or `/dev/ttyUSB*` / `/dev/ttyACM*`).
 
@@ -138,7 +163,7 @@ Output of active serial devices connected to your computer:
 
 ---
 
-### 3. `:Piomon` — Live Serial Monitor 📺
+#### 3. `:Piomon` — Live Serial Monitor 📺
 * **CLI Wrapper:** `pio device monitor`
 * **Purpose:** Opens a live serial monitor window inside Neovim to view `Serial.println()` output and debug logs from your hardware in real time.
 
