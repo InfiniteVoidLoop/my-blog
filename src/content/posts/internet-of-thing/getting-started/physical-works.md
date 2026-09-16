@@ -14,9 +14,9 @@ description: "A friendly guide to understanding the physical works in Internet o
 This blog will provide an overview of the physical layer of IoT devices and how microcontrollers interact with hardware components via GPIO.
 
 > [!NOTE]
-> 📌 **IoT Series (Part 5 of 5):** This is the final article in our 5-part IoT series.
+> 📌 **IoT Series (Part 5 of 6):** This is the fifth article in our 6-part IoT series.
 > * 👈 Previous: **[Part 4: Connect your device to the Internet](/posts/internet-of-thing/getting-started/iot-connect-internet/)**
-> * 🏠 Start: **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
+> * 👉 Next: **[Part 6: Getting Started with PlatformIO](/posts/internet-of-thing/getting-started/code-with-platformIO/)**
 
 ![Overview of Physical Work](/posts/internet-of-thing/getting-started/overview-physical-works-iot/index.png)
 
@@ -106,7 +106,7 @@ Microcontrollers use serial protocols to communicate with sensors, displays, and
 ## 📖 Series Navigation
 
 👈 Back to **[Part 4: Connect your device to the Internet](/posts/internet-of-thing/getting-started/iot-connect-internet/)**  
-🏠 Return to **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
+👉 Continue to **[Part 6: Getting Started with PlatformIO](/posts/internet-of-thing/getting-started/code-with-platformIO/)**
 
 ### 📚 Complete IoT Getting Started Series
 1. **[Part 1: Introduction to Internet of Things (IoT)](/posts/internet-of-thing/getting-started/getting-started-iot/)**
@@ -114,4 +114,5 @@ Microcontrollers use serial protocols to communicate with sensors, displays, and
 3. **[Part 3: Sensors and Actuators in Internet of Things (IoT)](/posts/internet-of-thing/getting-started/sensors-actuators-iot/)**
 4. **[Part 4: Connect your device to the Internet](/posts/internet-of-thing/getting-started/iot-connect-internet/)**
 5. **[Part 5: Overview of Physical Works in IoT](/posts/internet-of-thing/getting-started/overview-physical-works-iot/)**
+6. **[Part 6: Getting Started with PlatformIO](/posts/internet-of-thing/getting-started/code-with-platformIO/)**
 
