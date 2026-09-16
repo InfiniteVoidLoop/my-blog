@@ -110,6 +110,44 @@ Key directories & files:
 
 Super clean and easy setup! Now you are ready to write code and flash your ESP32 effortlessly. 🎉
 
+---
+
+## Writing Your First "Hello World" App 💻
+
+Open `src/main.cpp` and paste this simple starter code:
+
+```cpp
+#include <Arduino.h>
+
+#ifndef LED_BUILTIN
+#define LED_BUILTIN
+#endif
+
+void setup() {
+    Serial.begin(9600);
+}
+
+void loop() {
+    Serial.println("Hello, ESP32!");
+    delay(1000);
+}
+```
+
+### 💡 Quick Code Breakdown:
+* **`#include <Arduino.h>`:** Core header bringing Arduino functions (`Serial`, `delay`) to C++ in PlatformIO.
+* **`setup()`:** Executes **once** on boot to initialize serial communication at `9600` baud rate.
+* **`loop()`:** Runs **continuously in a loop** after `setup()`. It prints `"Hello, ESP32!"` to the serial port every `1000ms` (1 second).
+
+> [!IMPORTANT]
+> ⚠️ **Baud Rate Matching Rule:** The baud rate set in your code (`Serial.begin(9600)`) **MUST match** the baud rate of your Serial Monitor! If they do not match (or if you use an unstandard rate like 9500), you will receive garbled text/symbols (`?#@!`) due to clock timing misalignment.
+>
+> You can also specify the monitor baud rate in `platformio.ini`:
+> ```ini
+> monitor_speed = 9600
+> ```
+
+---
+
 ## PlatformIO Neovim's plugin Commands 📝
 
 The [`nvim-platformio.lua`](https://github.com/anurag3301/nvim-platformio.lua) plugin provides convenient commands and an interactive popup menu that wrap standard PlatformIO Core (CLI) commands:
