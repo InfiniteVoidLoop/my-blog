@@ -110,9 +110,42 @@ Key directories & files:
 
 Super clean and easy setup! Now you are ready to write code and flash your ESP32 effortlessly. 🎉
 
----
 ## PlatformIO Neovim's plugin Commands 📝
+
+The [`nvim-platformio.lua`](https://github.com/anurag3301/nvim-platformio.lua) plugin provides convenient Neovim commands that wrap standard PlatformIO Core (CLI) commands, saving you from switching to an external terminal:
+
+### 1. `:Piolib` — Library Manager 📦
+* **CLI Wrapper:** `pio pkg search` / `pio pkg install`
+* **Purpose:** Search and manage C/C++ libraries from the PlatformIO registry directly within Neovim.
+
+![Search Libraries with Piolib](@/assets/images/iot/piolib.png)
+
+Selecting a library displays its info, dependencies, and lets you add it straight to your `platformio.ini`:
+
+![Library Search Results](@/assets/images/iot/piolib-result.png)
+
 ---
+
+### 2. `:Piolsserial` — List Serial Ports 🔌
+* **CLI Wrapper:** `pio device list`
+* **Purpose:** Scans and lists all connected hardware serial ports (`COMx` or `/dev/ttyUSB*` / `/dev/ttyACM*`).
+
+![Execute Piolsserial Command](@/assets/images/iot/piolsserial.png)
+
+Output of active serial devices connected to your computer:
+
+![Connected Serial Devices List](@/assets/images/iot/piolsserial-result.png)
+
+---
+
+### 3. `:Piomon` — Live Serial Monitor 📺
+* **CLI Wrapper:** `pio device monitor`
+* **Purpose:** Opens a live serial monitor window inside Neovim to view `Serial.println()` output and debug logs from your hardware in real time.
+
+![PlatformIO Serial Monitor in Neovim](@/assets/images/iot/piomon.png)
+
+---
+
 
 ## Essential PlatformIO CLI Commands ⚡
 
