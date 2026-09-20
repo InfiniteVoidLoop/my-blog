@@ -5,6 +5,7 @@ export default {
     home: "Home",
     profile: "Profile",
     posts: "Posts",
+    series: "Series",
     tags: "Tags",
     about: "About",
     archives: "Archives",
@@ -53,6 +54,9 @@ export default {
 
     searchTitle: "Search",
     searchDesc: "Search any article ...",
+
+    seriesTitle: "Series",
+    seriesDesc: "All article series organized by topic.",
   },
   a11y: {
     skipToContent: "Skip to content",
