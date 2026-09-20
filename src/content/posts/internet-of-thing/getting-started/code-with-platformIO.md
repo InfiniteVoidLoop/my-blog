@@ -10,6 +10,8 @@ tags:
   - internet-of-things
   - code-with-platformio
 description: "Say goodbye to messy vendor IDEs! A simple, developer-friendly guide to setting up PlatformIO in Neovim and coding your first ESP32 project."
+series: "Internet of Things"
+seriesOrder: 6
 ---
 Say goodbye to clunky vendor IDEs! In this guide, we will explore **PlatformIO**, understand why it is a game-changer for embedded development, and set up your first **ESP32** project right inside **Neovim**.
 

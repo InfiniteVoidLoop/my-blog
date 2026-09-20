@@ -12,6 +12,8 @@ tags:
   - sensors
   - actuators
 description: "A comprehensive guide to understanding sensors and actuators in Internet of Things (IoT), their types, applications, and how they work together in IoT systems."
+series: "Internet of Things"
+seriesOrder: 3
 ---
 This blog will explore the concepts of **sensors** and **actuators** in the context of **Internet of Things (IoT)**, their types, applications, and how they work together in IoT systems.
 

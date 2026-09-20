@@ -10,6 +10,8 @@ tags:
     - introduction-to-iot
     - internet-of-things
 description: "A friendly guide to understanding the physical works in Internet of Things (IoT), completely series of IoT for learning from scratch."
+series: "Internet of Things"
+seriesOrder: 5
 ---
 This blog will provide an overview of the physical layer of IoT devices and how microcontrollers interact with hardware components via GPIO.
 
