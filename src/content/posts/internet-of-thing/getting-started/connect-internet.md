@@ -10,6 +10,8 @@ tags:
   - introduction-to-iot
   - internet-of-things
 description: "A friendly guide to connecting your IoT device to the Internet, completely series of IoT for learning from scratch."
+series: "Internet of Things"
+seriesOrder: 4
 ---
 This blog will introduce some of the communication protocols that IoT devices can use to connect to the cloud, and types of data they might send or receive.
 

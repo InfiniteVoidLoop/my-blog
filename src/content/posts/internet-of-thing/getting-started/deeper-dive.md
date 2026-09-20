@@ -10,6 +10,8 @@ tags:
   - introduction-to-iot
   - internet-of-things
 description: "A friendly guide to understanding the deeper concepts of Internet of Things (IoT), completely series of IoT for learning from scratch."
+series: "Internet of Things"
+seriesOrder: 2
 ---
 This blog will go deep down into concepts around **Internet of Things (IoT)**, its applications, and how to get started with IoT development.
 
