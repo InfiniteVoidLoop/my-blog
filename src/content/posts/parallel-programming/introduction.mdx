@@ -69,3 +69,21 @@ In contrast, the **transistor count** continues to scale up exponentially accord
    - Maximize compute density by packing thousands of small, simple ALUs designed to execute data-parallel operations concurrently.
 3. **Simple Control & Latency Hiding:**
    - Rely on simple control logic without complex branch prediction. 
+
+## Strategies of Using Both CPU and GPU
+
+> [!NOTE]
+> * CPUs for **sequential parts** where **latency** hurts
+> * GPUs for **parallel parts** where **throughput** matters
+
+![CPU Host and GPU Device Architecture](@/assets/images/parallel_programming/gpu_cpu_architecture.png)
+
+- **Problem:** GPUs still rely on current computer architectures, including OS, I/O, and memory management.
+- **Solution:**
+  * **CPU (Host):** Provides management and control over the GPU.
+  * **GPU (Device):** Provides massive parallel computing power.
+- GPUs have separate dedicated memory (CPU: DRAM, GPU: GDDR/HBM) connected over a high-speed bus (PCIe, NVLink, etc.) to transfer data between the CPU and GPU.
+
+> [!TIP]
+> **CUDA** (Compute Unified Device Architecture) allows us to write programs taking full advantage of both CPU and GPU (NVIDIA).
+
