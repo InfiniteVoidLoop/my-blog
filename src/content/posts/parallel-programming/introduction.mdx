@@ -14,6 +14,8 @@ seriesOrder: 1
 ---
 This blog will introduce you to **Parallel Programming**.
 
+![Introduction to Parallel Programming](/posts/parallel-programming/getting-started-parallel-programming/index.png)
+
 ## Table of contents
 
 ## What is Parallel Programming?
@@ -26,6 +28,8 @@ This blog will introduce you to **Parallel Programming**.
 ![40 Years of Microprocessor Trend Data](@/assets/images/parallel_programming/moore.png)
 
 As you can see from the trend chart above, the trade-off between ILP (Instruction-Level Parallelism) scaling and power consumption is no longer linear. Power consumption is a major concern nowadays—modern AI models consume a huge amount of electricity, which can cost even more than the hardware itself.
+
+> 💬 *"Accelerated computing is not all about performance, it's all about energy — it's about performance per watt."*
 
 In contrast, the **transistor count** continues to scale up exponentially according to **Moore's Law**, which means we can use more transistors to perform more instructions at the same time. This is the main idea behind **parallel programming**.
 
@@ -86,6 +90,24 @@ In contrast, the **transistor count** continues to scale up exponentially accord
 
 > [!TIP]
 > **CUDA** (Compute Unified Device Architecture) allows us to write programs taking full advantage of both CPU and GPU (NVIDIA).
+
+---
+
+## Common Languages & Frameworks for Parallel Programming 🛠️
+
+To build parallel applications across CPUs and GPUs, various programming languages provide native extensions, GPU bindings, and specialized frameworks:
+
+| Language / Domain | Popular Frameworks & Libraries | Common Use Case |
+| :--- | :--- | :--- |
+| **C / C++** | CUDA C/C++, OpenMP, OpenCL, SYCL | System programming, high-performance engines, custom GPU kernels |
+| **Python** | PyTorch, CuPy, PyCUDA, Numba | Deep learning, AI models, GPU-accelerated scientific data analysis |
+| **Fortran** | CUDA Fortran, OpenACC | Supercomputing, physical simulations, High-Performance Computing (HPC) |
+| **Numerical Analytics** | MATLAB (Parallel Computing Toolbox) | Matrix calculations, signal processing, engineering modeling |
+
+* **C / C++ (CUDA C/C++):** The core low-level language for writing high-performance CUDA kernels directly on NVIDIA hardware.
+* **Python (PyCUDA, PyTorch, CuPy):** High-level Python ecosystem powering modern AI/ML frameworks and fast array operations on GPUs.
+* **Fortran (CUDA Fortran):** Widely used in scientific supercomputing clusters for heavy numerical simulations.
+* **Numerical Analytics (MATLAB):** Provides built-in GPU arrays and parallel loops (`parfor`) for rapid math & engineering analysis.
 
 ---
 
