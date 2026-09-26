@@ -87,3 +87,17 @@ In contrast, the **transistor count** continues to scale up exponentially accord
 > [!TIP]
 > **CUDA** (Compute Unified Device Architecture) allows us to write programs taking full advantage of both CPU and GPU (NVIDIA).
 
+---
+
+## Key Challenges in Parallel Programming ⚠️
+
+While parallel computing offers massive performance gains, it also introduces unique engineering challenges:
+
+* **⚡ Race Conditions:** When multiple threads try to modify shared data at the same time without proper coordination, leading to corrupted state or unpredictable bugs.
+* **🔒 Deadlocks:** Occurs when two or more threads get stuck waiting indefinitely for each other to release shared resources, freezing the application completely.
+* **⏳ Synchronous Data Dependencies:** Most data computations depend on previous steps and must wait—they are synchronous rather than asynchronous, making data decoupling hard to handle.
+* **🎯 Identifying What Can Be Parallelized (Fast ≠ Efficient):** You must define which parts of the program can actually be parallelized. Attempting to force sequential logic into parallel threads can make code overly complex.
+* **⚖️ Load Imbalance:** If work isn't divided evenly, some cores finish early and stay idle waiting for the slowest core to finish.
+* **🚚 Memory Transfer Overhead:** Moving data back and forth between CPU (Host DRAM) and GPU (Device VRAM) over PCIe can take longer than the actual computation itself.
+* **🐞 Debugging Complexity:** Because thread execution order varies unpredictably between runs, parallel bugs are non-deterministic and hard to reproduce.
+
