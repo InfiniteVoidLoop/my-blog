@@ -35,7 +35,37 @@ In contrast, the **transistor count** continues to scale up exponentially accord
 
 ## CPU vs GPU
 
-To leverage parallel programming effectively, hardware architectures have evolved into two primary processing paradigms:
+| Type | Core Structure | Primary Focus |
+| :--- | :--- | :--- |
+| **CPU - Multicore** | Have a few cores, but each core is very powerful and complex | Focus on the execution speed (low latency) |
+| **GPU - Many core** | Have many many cores, but each core is weak and simple | Focus on the throughput (massive parallelism) |
 
-- **CPU (Central Processing Unit):** Optimized for **low-latency** sequential processing. It features a few powerful, highly complex cores with large caches and sophisticated instruction pipelines to execute complex control flows quickly.
-- **GPU (Graphics Processing Unit):** Optimized for **high-throughput** parallel processing. It features thousands of smaller, simpler cores designed to execute thousands of concurrent threads simultaneously for data-parallel workloads.
+---
+
+### CPU: Latency-Oriented Design
+
+![CPU High-Level Diagram](@/assets/images/parallel_programming/CPU.png)
+
+![CPU Architecture Diagram](@/assets/images/parallel_programming/CPU_Architecture.png)
+
+1. **Large Caches:**
+   - Convert long-latency memory (DRAM) access into short-latency cache access (L1/L2/L3).
+2. **Powerful ALUs:**
+   - Reduce operation latency for individual instructions, though at the cost of increased chip area and power consumption.
+3. **Sophisticated Control:**
+   - Feature Branch Prediction.
+
+---
+
+### GPU: Throughput-Oriented Design
+
+![GPU High-Level Diagram](@/assets/images/parallel_programming/GPU.png)
+
+![GPU Architecture Diagram](@/assets/images/parallel_programming/GPU_Architecture.png)
+
+1. **Small Caches:**
+   - Caches are kept small and are used primarily to boost memory bandwidth rather than mask long DRAM latencies.
+2. **Massive Array of Simple ALUs:**
+   - Maximize compute density by packing thousands of small, simple ALUs designed to execute data-parallel operations concurrently.
+3. **Simple Control & Latency Hiding:**
+   - Rely on simple control logic without complex branch prediction. 
