@@ -1,0 +1,41 @@
+---
+author: DangVoHongPhuc
+pubDatetime: 2026-09-26T20:09:20+07
+title: "Introduction to Parallel Programming"
+slug: getting-started-parallel-programming
+featured: false
+draft: false
+tags:
+  - parallel-programming
+  - series-of-parallel-programming
+description: "A brief introduction about parallel programming, its main idea and its applications in real world."
+series: "Parallel Programming"
+seriesOrder: 1
+---
+This blog will introduce you to **Parallel Programming**.
+
+## Table of contents
+
+## What is Parallel Programming?
+
+**Many applications have demanded more execution speed and resources:**
+- Previously, the execution speed of a program could be improved significantly simply by enhancing CPU clock frequency—a period famously known as **"The Free Lunch"** (Frequency Scaling).
+- However, nowadays, scaling single-instruction stream performance is limited by physical constraints such as power consumption and heat dissipation (the Power Wall).
+- As a result, **parallel programming** has become the essential solution for developers to boost the performance of their code & applications.
+
+![40 Years of Microprocessor Trend Data](@/assets/images/parallel_programming/moore.png)
+
+As you can see from the trend chart above, the trade-off between ILP (Instruction-Level Parallelism) scaling and power consumption is no longer linear. Power consumption is a major concern nowadays—modern AI models consume a huge amount of electricity, which can cost even more than the hardware itself.
+
+In contrast, the **transistor count** continues to scale up exponentially according to **Moore's Law**, which means we can use more transistors to perform more instructions at the same time. This is the main idea behind **parallel programming**.
+
+![Moore's Law Transistor Count Growth](@/assets/images/parallel_programming/moore_law.png)
+
+- We won't go deep down into how transistors work, but imagine that the CPU needs logic gates to perform instructions, and those logic gates are made up of transistors. The more transistors we have, the more logic gates we can build, and the more instructions we can perform at the same time.
+
+## CPU vs GPU
+
+To leverage parallel programming effectively, hardware architectures have evolved into two primary processing paradigms:
+
+- **CPU (Central Processing Unit):** Optimized for **low-latency** sequential processing. It features a few powerful, highly complex cores with large caches and sophisticated instruction pipelines to execute complex control flows quickly.
+- **GPU (Graphics Processing Unit):** Optimized for **high-throughput** parallel processing. It features thousands of smaller, simpler cores designed to execute thousands of concurrent threads simultaneously for data-parallel workloads.
