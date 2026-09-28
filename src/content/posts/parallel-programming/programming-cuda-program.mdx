@@ -16,3 +16,84 @@ seriesOrder: 2
 This blog will introduce briefly about **CUDA programming**.
 
 ## Table of contents
+## Structure of a simple CUDA program
+
+
+## Setup CUDA in Neovim IDE:
+1. Install parser CUDA in Neovim:
+```Shell
+:TSInstall cuda cpp c
+```
+
+2. Ensure the filetype of `cuda` is `.cu` and `.cuh` 
+```Lua
+vim.filetype.add({
+    extension = {
+        cu = "cuda",
+        cuh = "cuda"
+    }
+})
+```
+
+3. Configure LSP (clangd) for CUDA
+**Create a `.clangd` at root of the project**
+```Clangd
+CompileFlags:
+    Add:
+        - -x
+        - cuda
+        - --cuda-path=/opt/cuda
+        - -I/opt/cuda/include
+        - -L/opt/cuda/lib64
+        - -lcudart
+        - --cuda-gpu-arch=sm
+```
+> [!NOTE]
+> `clangd` is a language server protocol uses for diagnostic code, errors in realtime faster than directly call `nvcc` (NVIDIA CUDA Compiler). 
+> It is recommended to use `clangd` for better performance and code diagnostics.
+
+3. Configure `lspconfig` for neovim to use `clangd`
+```lua
+return {
+  "neovim/nvim-lspconfig",
+  opts = {
+    servers = {
+      clangd = {
+        filetypes = { "c", "cpp", "objc", "objcpp", "cuda" },
+        cmd = {
+          "clangd",
+          "--background-index",
+          "--clang-tidy",
+          "--header-insertion=iwyu",
+          "--completion-style=detailed",
+          "--function-arg-placeholders",
+          "--fallback-style=llvm",
+        },
+      },
+    },
+  },
+}
+```
+
+4. Configure makefile in Neovim
+```Makefile
+NVCC = /opt/cuda/bin/nvcc
+ARCH = sm_75
+CFLAGS = -O3 -arch=$(ARCH)
+
+TARGET = main
+SRCS = main.cu
+
+all: $(TARGET)
+
+$(TARGET): $(SRCS)
+	$(NVCC) $(CFLAGS) -o $@ $^
+
+run: $(TARGET)
+	./$(TARGET)
+
+clean:
+	rm -f $(TARGET)
+```
+> [!TIP]
+> In neovim, use `:make` to compile the code or `:make run` to compile and run the code.
