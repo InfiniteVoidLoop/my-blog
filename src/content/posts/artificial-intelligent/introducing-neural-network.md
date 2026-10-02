@@ -37,6 +37,9 @@ On the surface, a machine recognizing handwritten digits seems not an impressive
 
 An **Artificial Neural Network (ANN)** is composed of interconnected units called **neurons** (or nodes) organized into distinct **layers**:
 
+![Complete Multilayer Neural Network Architecture](@/assets/images/artificial-intelligent/network-architecture.jpg)
+*Figure 1: A multilayer neural network with 784 input neurons, two hidden layers of 16 neurons each, and 10 output neurons (Inspired by 3Blue1Brown).*
+
 ### 1. Neurons & Activations
 * A **neuron** is a container holding a single number, known as its **activation value** (typically ranging from `0.0` to `1.0`).
 * Higher activation means the neuron is strongly "lit up" or firing.
@@ -47,15 +50,26 @@ An **Artificial Neural Network (ANN)** is composed of interconnected units calle
 
 1. **Input Layer:**
    * Receives raw data from the outside world.
-   * For our 28x28 pixel digit image, the input layer consists of **784 neurons** ($28 \times 28 = 784$), where each neuron's activation corresponds to the brightness of a single pixel.
+   * For our 28x28 pixel digit image, the input layer consists of **784 neurons** (28 x 28 = 784), where each neuron's activation corresponds to the brightness of a single pixel.
+
+![Input Layer — 28×28 pixel brightness values fed into 784 neurons](@/assets/images/artificial-intelligent/input-layer.png)
+*Each pixel's brightness (0.0 = black, 1.0 = white) becomes one neuron's activation in the input layer.*
 
 2. **Hidden Layers:**
    * Located between the input and output layers.
-   * These layers extract patterns step-by-step. The first hidden layer might recognize small edges or line segments; the second might assemble those edges into loops or curves (like the top half of a 3).
+   * These layers break down complex tasks into sub-patterns hierarchically:
+     - **Layer 1:** Detects small, simple line segments and edges.
+     - **Layer 2:** Combines edges into sub-components like loops, strokes, or arcs (e.g., the top loop of a 3).
+
+![Hierarchical Feature Detection in Hidden Layers](@/assets/images/artificial-intelligent/hidden-layers-concept.jpg)
+*Figure 2: Hidden layers assemble low-level features (edges & lines) into high-level shapes (loops & components).*
 
 3. **Output Layer:**
    * Provides the final answer.
    * Consists of **10 neurons** representing the digits `0` through `9`. The neuron with the highest activation score is the network's final prediction!
+
+![Output Layer — network predicts digit 9 with highest activation](@/assets/images/artificial-intelligent/output-layer.png)
+*The output layer lights up neuron "9" — the network's confident prediction for this handwritten digit.*
 
 ---
 
@@ -72,9 +86,14 @@ Information flows through connections between neurons:
 
 Each neuron calculates a weighted sum of its inputs plus a bias:
 
-$$z = (w_1 x_1 + w_2 x_2 + \dots + w_n x_n) + b$$
+$$
+z = (w_1 x_1 + w_2 x_2 + \dots + w_n x_n) + b
+$$
 
-Then, it passes this result through an **activation function** (such as Sigmoid or ReLU) to compress the output into a normalized range and introduce non-linearity.
+Then, it passes this result through an **activation function** (such as Sigmoid or ReLU) to compress the output into a normalized range (`0.0` to `1.0`) and introduce non-linearity.
+
+![Vectorized Activation Equation](@/assets/images/artificial-intelligent/neuron-equation.jpg)
+*Figure 3: Vectorized layer equation $a^{(1)} = \sigma(W a^{(0)} + b)$ representing all weights, activations, and biases across a layer.*
 
 ---
 
