@@ -85,7 +85,7 @@ Information flows through connections between neurons:
 
 ---
 
-### 4. How a Neuron Computes its Output
+## How a Neuron Computes its Output
 
 Each neuron calculates a weighted sum of its inputs plus a bias:
 
@@ -117,7 +117,7 @@ $$
 
 ---
 
-### 5. How Information Passes Between Layers
+## How Information Passes Between Layers
 
 Information in a neural network flows sequentially forward from layer to layer (Forward Propagation):
 
