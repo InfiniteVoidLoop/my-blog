@@ -93,6 +93,14 @@
     pre {
       @apply focus-visible:outline-accent focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed rounded-lg;
     }
+
+    .katex-display {
+      @apply my-6 overflow-x-auto overflow-y-hidden py-2 text-foreground;
+    }
+
+    .katex {
+      @apply text-foreground text-[1.05em];
+    }
   }
 
   /* ===== Code Blocks & Syntax Highlighting ===== */
