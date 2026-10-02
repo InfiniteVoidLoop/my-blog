@@ -95,6 +95,20 @@ $$
 
 Then, it passes this result through an **activation function** (such as Sigmoid or ReLU) to compress the output into a normalized range (`0.0` to `1.0`) and introduce non-linearity.
 
+#### The Sigmoid Activation Function ($\sigma$)
+
+The **Sigmoid function** is a mathematical function defined as:
+
+$$
+\sigma(x) = \frac{1}{1 + e^{-x}}
+$$
+
+* **Squashing Inputs:** It squashes any real-valued weighted input $z$ into a normalized activation range between `0.0` and `1.0`.
+* **Behavior:** Extremely high values approach `1.0` (strongly firing neuron), extremely low negative values approach `0.0` (inactive neuron), and $x = 0$ outputs `0.5`.
+
+![The Sigmoid Activation Function Plot](@/assets/images/artificial-intelligent/sigmoid-function.png)
+*The Sigmoid S-curve squashes raw weighted sums into valid activation scores between 0 and 1.*
+
 ![Vectorized Activation Equation](@/assets/images/artificial-intelligent/neuron-equation.jpg)
 *Figure 3: Vectorized layer equation $a^{(1)} = \sigma(W a^{(0)} + b)$ representing all weights, activations, and biases across a layer.*
 
