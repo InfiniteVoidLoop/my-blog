@@ -1,0 +1,125 @@
+---
+author: DangVoHongPhuc
+pubDatetime: 2026-09-26T20:09:20+07
+title: "Introduction to Parallel Programming"
+slug: getting-started-parallel-programming
+featured: false
+draft: false
+tags:
+  - parallel-programming
+  - series-of-parallel-programming
+description: "A brief introduction about parallel programming, its main idea and its applications in real world."
+series: "Parallel Programming"
+seriesOrder: 1
+---
+This blog will introduce you to **Parallel Programming**.
+
+![Introduction to Parallel Programming](/posts/parallel-programming/getting-started-parallel-programming/index.png)
+
+## Table of contents
+
+## What is Parallel Programming?
+
+**Many applications have demanded more execution speed and resources:**
+- Previously, the execution speed of a program could be improved significantly simply by enhancing CPU clock frequency—a period famously known as **"The Free Lunch"** (Frequency Scaling).
+- However, nowadays, scaling single-instruction stream performance is limited by physical constraints such as power consumption and heat dissipation (the Power Wall).
+- As a result, **parallel programming** has become the essential solution for developers to boost the performance of their code & applications.
+
+![40 Years of Microprocessor Trend Data](@/assets/images/parallel_programming/moore.png)
+
+As you can see from the trend chart above, the trade-off between ILP (Instruction-Level Parallelism) scaling and power consumption is no longer linear. Power consumption is a major concern nowadays—modern AI models consume a huge amount of electricity, which can cost even more than the hardware itself.
+
+> 💬 *"Accelerated computing is not all about performance, it's all about energy — it's about performance per watt."*
+
+In contrast, the **transistor count** continues to scale up exponentially according to **Moore's Law**, which means we can use more transistors to perform more instructions at the same time. This is the main idea behind **parallel programming**.
+
+![Moore's Law Transistor Count Growth](@/assets/images/parallel_programming/moore_law.png)
+
+- We won't go deep down into how transistors work, but imagine that the CPU needs logic gates to perform instructions, and those logic gates are made up of transistors. The more transistors we have, the more logic gates we can build, and the more instructions we can perform at the same time.
+
+## CPU vs GPU
+
+| Type | Core Structure | Primary Focus |
+| :--- | :--- | :--- |
+| **CPU - Multicore** | Have a few cores, but each core is very powerful and complex | Focus on the execution speed (low latency) |
+| **GPU - Many core** | Have many many cores, but each core is weak and simple | Focus on the throughput (massive parallelism) |
+
+---
+
+### CPU: Latency-Oriented Design
+
+![CPU High-Level Diagram](@/assets/images/parallel_programming/CPU.png)
+
+![CPU Architecture Diagram](@/assets/images/parallel_programming/CPU_Architecture.png)
+
+1. **Large Caches:**
+   - Convert long-latency memory (DRAM) access into short-latency cache access (L1/L2/L3).
+2. **Powerful ALUs:**
+   - Reduce operation latency for individual instructions, though at the cost of increased chip area and power consumption.
+3. **Sophisticated Control:**
+   - Feature Branch Prediction.
+
+---
+
+### GPU: Throughput-Oriented Design
+
+![GPU High-Level Diagram](@/assets/images/parallel_programming/GPU.png)
+
+![GPU Architecture Diagram](@/assets/images/parallel_programming/GPU_Architecture.png)
+
+1. **Small Caches:**
+   - Caches are kept small and are used primarily to boost memory bandwidth rather than mask long DRAM latencies.
+2. **Massive Array of Simple ALUs:**
+   - Maximize compute density by packing thousands of small, simple ALUs designed to execute data-parallel operations concurrently.
+3. **Simple Control & Latency Hiding:**
+   - Rely on simple control logic without complex branch prediction. 
+
+## Strategies of Using Both CPU and GPU
+
+> [!NOTE]
+> * CPUs for **sequential parts** where **latency** hurts
+> * GPUs for **parallel parts** where **throughput** matters
+
+![CPU Host and GPU Device Architecture](@/assets/images/parallel_programming/gpu_cpu_architecture.png)
+
+- **Problem:** GPUs still rely on current computer architectures, including OS, I/O, and memory management.
+- **Solution:**
+  * **CPU (Host):** Provides management and control over the GPU.
+  * **GPU (Device):** Provides massive parallel computing power.
+- GPUs have separate dedicated memory (CPU: DRAM, GPU: GDDR/HBM) connected over a high-speed bus (PCIe, NVLink, etc.) to transfer data between the CPU and GPU.
+
+> [!TIP]
+> **CUDA** (Compute Unified Device Architecture) allows us to write programs taking full advantage of both CPU and GPU (NVIDIA).
+
+---
+
+## Common Languages & Frameworks for Parallel Programming 🛠️
+
+To build parallel applications across CPUs and GPUs, various programming languages provide native extensions, GPU bindings, and specialized frameworks:
+
+| Language / Domain | Popular Frameworks & Libraries | Common Use Case |
+| :--- | :--- | :--- |
+| **C / C++** | CUDA C/C++, OpenMP, OpenCL, SYCL | System programming, high-performance engines, custom GPU kernels |
+| **Python** | PyTorch, CuPy, PyCUDA, Numba | Deep learning, AI models, GPU-accelerated scientific data analysis |
+| **Fortran** | CUDA Fortran, OpenACC | Supercomputing, physical simulations, High-Performance Computing (HPC) |
+| **Numerical Analytics** | MATLAB (Parallel Computing Toolbox) | Matrix calculations, signal processing, engineering modeling |
+
+* **C / C++ (CUDA C/C++):** The core low-level language for writing high-performance CUDA kernels directly on NVIDIA hardware.
+* **Python (PyCUDA, PyTorch, CuPy):** High-level Python ecosystem powering modern AI/ML frameworks and fast array operations on GPUs.
+* **Fortran (CUDA Fortran):** Widely used in scientific supercomputing clusters for heavy numerical simulations.
+* **Numerical Analytics (MATLAB):** Provides built-in GPU arrays and parallel loops (`parfor`) for rapid math & engineering analysis.
+
+---
+
+## Key Challenges in Parallel Programming ⚠️
+
+While parallel computing offers massive performance gains, it also introduces unique engineering challenges:
+
+* **⚡ Race Conditions:** When multiple threads try to modify shared data at the same time without proper coordination, leading to corrupted state or unpredictable bugs.
+* **🔒 Deadlocks:** Occurs when two or more threads get stuck waiting indefinitely for each other to release shared resources, freezing the application completely.
+* **⏳ Synchronous Data Dependencies:** Most data computations depend on previous steps and must wait—they are synchronous rather than asynchronous, making data decoupling hard to handle.
+* **🎯 Identifying What Can Be Parallelized (Fast ≠ Efficient):** You must define which parts of the program can actually be parallelized. Attempting to force sequential logic into parallel threads can make code overly complex.
+* **⚖️ Load Imbalance:** If work isn't divided evenly, some cores finish early and stay idle waiting for the slowest core to finish.
+* **🚚 Memory Transfer Overhead:** Moving data back and forth between CPU (Host DRAM) and GPU (Device VRAM) over PCIe can take longer than the actual computation itself.
+* **🐞 Debugging Complexity:** Because thread execution order varies unpredictably between runs, parallel bugs are non-deterministic and hard to reproduce.
+
