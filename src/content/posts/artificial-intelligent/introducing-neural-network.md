@@ -80,6 +80,9 @@ Information flows through connections between neurons:
 * **Weights ($w$):** Every connection has an assigned weight—a number indicating how strongly one neuron influences another. Positive weights excite target neurons, while negative weights inhibit them.
 * **Biases ($b$):** An extra offset added to each neuron to control its threshold for activation (how easily it fires).
 
+![Weights and Biases Illustration](@/assets/images/artificial-intelligent/weight-illustration.png)
+*Weights dictate the strength and sign of connections between neurons, while biases tune their activation thresholds.*
+
 ---
 
 ### 4. How a Neuron Computes its Output
@@ -94,6 +97,28 @@ Then, it passes this result through an **activation function** (such as Sigmoid 
 
 ![Vectorized Activation Equation](@/assets/images/artificial-intelligent/neuron-equation.jpg)
 *Figure 3: Vectorized layer equation $a^{(1)} = \sigma(W a^{(0)} + b)$ representing all weights, activations, and biases across a layer.*
+
+> [!NOTE]
+> Layers break big problems into bite-size pieces.
+
+---
+
+### 5. How Information Passes Between Layers
+
+Information in a neural network flows sequentially forward from layer to layer (Forward Propagation):
+
+* **Activation Cascade:** The activations $a^{(L-1)}$ from layer $L-1$ act as inputs to calculate the activations $a^{(L)}$ of layer $L$.
+* **Weighted Influence:** Each connection carries a weight $w$ that dictates how much the previous neuron excites or suppresses the next neuron.
+* **Matrix Computation:** Rather than calculating neuron by neuron, an entire layer's activations are computed at once using matrix operations:
+
+$$
+a^{(L)} = \sigma \left( W^{(L)} a^{(L-1)} + b^{(L)} \right)
+$$
+
+Where $W^{(L)}$ is the weight matrix, $b^{(L)}$ is the bias vector, and $\sigma$ is the activation function.
+
+![Information Flow Between Layers](@/assets/images/artificial-intelligent/information-flow.png)
+*Figure 4: How activations flow from layer $L-1$ through weighted sum and activation function $\sigma$ to produce activations for layer $L$.*
 
 ---
 
