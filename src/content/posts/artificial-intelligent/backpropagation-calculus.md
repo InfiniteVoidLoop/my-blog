@@ -160,11 +160,10 @@ $$
 
 ---
 
-## Conclusion & Algorithmic Summary
+## Conclusion
 
-![Backpropagation Calculus Formula Summary](@/assets/images/artificial-intelligent/backprop-summary.jpg)
-*Figure 6: Complete mathematical formulation of backpropagation partial derivatives across multi-layer neural networks.*
+Backpropagation boils down to three core principles:
 
-* **Chain Rule Engine:** Backpropagation reduces high-dimensional neural network optimization into recursive multiplications of **local partial derivatives**.
-* **Reverse Information Flow:** Gradients are evaluated backwards from the output layer towards the input layer (**backward pass**).
-* **Matrix Vectorization:** Modern deep learning frameworks (PyTorch, TensorFlow) convert these scalar partial derivatives into vectorized **matrix multiplications** ($\nabla_W C$), maximizing GPU parallelization.
+1. **Chain Rule Engine:** Applies the multivariable chain rule to calculate how sensitive the cost function is to every weight and bias.
+2. **Backward Error Flow:** Computes error signals starting from the output layer and propagates them backward through hidden layers.
+3. **Vectorized Optimization:** Aggregates partial derivatives into a gradient vector ($\nabla C$), enabling modern frameworks to update parameters efficiently using Gradient Descent.
