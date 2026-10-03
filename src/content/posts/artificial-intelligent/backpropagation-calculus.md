@@ -162,6 +162,9 @@ $$
 
 ## Conclusion
 
+![Backpropagation Calculus Formula Summary](@/assets/images/artificial-intelligent/backprop-summary.jpg)
+*Figure 6: Complete mathematical summary of backpropagation calculus formulas across layers.*
+
 Backpropagation boils down to three core principles:
 
 1. **Chain Rule Engine:** Applies the multivariable chain rule to calculate how sensitive the cost function is to every weight and bias.
