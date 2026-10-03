@@ -17,11 +17,13 @@ seriesOrder: 2
 
 This post covers the mathematical foundation of **Backpropagation Calculus**, explaining step-by-step how gradients flow backwards through a neural network using the *multivariable chain rule*.
 
-![Backpropagation Calculus](@/assets/images/artificial-intelligent/backprop-hero.png)
+![Backpropagation Calculus](/posts/artificial-intelligent/backpropagation-calculus/index.png)
 
 ## Table of contents
 
 ## What is Backpropagation Calculus?
+
+![Backpropagation Calculus Architecture](@/assets/images/artificial-intelligent/backprop-hero.png)
 
 **Backpropagation** is the foundational algorithm that computes the **gradient of the cost function** $\nabla C$. The entries of this *gradient vector* represent the **partial derivatives** of the cost function $C$ with respect to every **weight** ($w$) and **bias** ($b$) throughout the network:
 
