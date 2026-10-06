@@ -38,10 +38,15 @@ However, in a traditional **RNN** or static embedding model, after the initial e
 
 In an autoregressive Transformer (such as GPT), the model generates text token-by-token by predicting the **next word** given a sequence of prompt tokens.
 
-![Context Aggregation into the Final Token for Next-Token Prediction](@/assets/images/artificial-intelligent/last-token-context-aggregation.png)
-*Figure 2: Information flow in a Transformer context window. Self-attention passes information from preceding token vectors into the final token vector ($\vec{E}_4 \to \vec{E}_4'$) to enable next-token prediction.*
+To predict what word comes next after a prompt sequence (for example, *"Therefore, the murderer was..."*):
 
-To predict what word comes next after a prompt sequence (for example, *"Therefore the murderer was..."*):
+> *It will have to have somehow encoded all of the information from the full context window that's relevant to predicting the next word into the vector representation of the final word.*
+
+![The last word ingesting context from preceding tokens](@/assets/images/artificial-intelligent/last-word-ingest.png)
+*Figure 2: The final vector embedding (e.g., for "was") ingests and encodes all relevant context from preceding tokens across the full context window to predict the next word.*
+
+![Context Aggregation into the Final Token for Next-Token Prediction](@/assets/images/artificial-intelligent/last-token-context-aggregation.png)
+*Figure 3: Information flow diagram in a Transformer context window. Self-attention passes information from preceding token vectors into the final token vector ($\vec{E}_4 \to \vec{E}_4'$) to enable next-token prediction.*
 
 1. **Initial Embeddings ($\vec{E}_i$):** Each token in the context window begins as a static vector lookup ($\vec{E}_1, \vec{E}_2, \vec{E}_3, \vec{E}_4$).
 2. **Context Aggregation via Attention:** The model does not generate predictions from every position. Instead, the **final token vector** (at position $N$, here `"was"`) must ingest, filter, and aggregate key clues from all preceding tokens.
