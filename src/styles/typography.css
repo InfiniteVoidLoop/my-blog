@@ -95,7 +95,10 @@
     }
 
     .katex-display {
-      @apply my-6 overflow-x-auto overflow-y-hidden py-2 text-foreground;
+      @apply my-6 overflow-x-auto overflow-y-hidden py-2 text-foreground text-center;
+    }
+    .katex-display > .katex {
+      @apply text-center inline-block;
     }
 
     .katex {
