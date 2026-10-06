@@ -53,3 +53,41 @@ To predict what word comes next after a prompt sequence (for example, *"Therefor
 3. **Vector Transformation ($\vec{E}_4 \to \vec{E}_4'$):** Through multiple layers of Self-Attention, information from previous token vectors is moved into the final token's vector representation.
 4. **Final Prediction:** The enriched vector $\vec{E}_4'$ is passed through the model's final output projection layer (Unembedding / Softmax) to compute probability scores for the next token (e.g., `"Colonel"` or `"Mustard"`).
 
+## The Attention Pattern
+
+We'll begin by describing a **single head of attention**, and later we will see how attention with multiple heads run in parallel.
+
+![Structure of a Single-Head Attention Block](@/assets/images/artificial-intelligent/attention-block.png)
+*Figure 4: The structure of a Single-Head Self-Attention block. Each token embedding is projected into Queries, Keys, and Values to calculate attention scores and update token representations.*
+
+### The QKV Mechanism: Queries, Keys, and Values
+
+To allow token vectors to exchange context, Self-Attention transforms each initial embedding vector into three specialized role vectors:
+
+- **Query ($Q$):** *"What am I looking for?"*
+- **Key ($K$):** *"What information do I contain?"*
+- **Value ($V$):** *"What content do I transfer if matched?"*
+
+---
+
+### Deep Dive: Query Vectors ($Q$)
+
+A **Query vector** ($Q_i$) represents the questions or requirements a specific token $i$ broadcasts to all other tokens in the context window.
+
+#### 1. Calculation via Linear Projection
+For each token embedding $\vec{E}_i$, its Query vector $Q_i$ is computed by multiplying with a learned linear projection matrix $W_Q$:
+
+$$Q_i = W_Q \vec{E}_i$$
+
+#### 2. What Does a Query Do?
+In high-dimensional space, the Query vector encodes specific semantic questions. For example:
+- For an ambiguous noun like **"mole"**: Its Query vector $Q_{\text{mole}}$ asks, *"Are there preceding words in this sentence indicating if I am a mammal, a chemical unit, or a spy?"*
+- For a verb like **"was"**: Its Query vector asks, *"Who or what is the subject of this sentence?"*
+
+#### 3. Comparing Queries with Keys
+The Query vector $Q_i$ is compared against every token's Key vector ($K_j$) using the dot product:
+
+$$\text{Score}_{ij} = Q_i \cdot K_j$$
+
+A larger dot product result indicates that token $j$'s Key matches token $i$'s Query, signaling that information should flow from token $j$ into token $i$.
+
