@@ -72,22 +72,33 @@ To allow token vectors to exchange context, Self-Attention transforms each initi
 
 ### Deep Dive: Query Vectors ($Q$)
 
-A **Query vector** ($Q_i$) represents the questions or requirements a specific token $i$ broadcasts to all other tokens in the context window.
+A **Query vector** ($\vec{Q}_i$) represents the questions or requirements a specific token $i$ broadcasts to other tokens in the context window.
 
 #### 1. Calculation via Linear Projection
-For each token embedding $\vec{E}_i$, its Query vector $Q_i$ is computed by multiplying with a learned linear projection matrix $W_Q$:
+For each token embedding $\vec{E}_i$, its Query vector $\vec{Q}_i$ is computed by multiplying with a learned linear projection matrix $W_Q$:
 
-$$Q_i = W_Q \vec{E}_i$$
+$$\vec{Q}_i = W_Q \vec{E}_i$$
 
-#### 2. What Does a Query Do?
-In high-dimensional space, the Query vector encodes specific semantic questions. For example:
-- For an ambiguous noun like **"mole"**: Its Query vector $Q_{\text{mole}}$ asks, *"Are there preceding words in this sentence indicating if I am a mammal, a chemical unit, or a spy?"*
-- For a verb like **"was"**: Its Query vector asks, *"Who or what is the subject of this sentence?"*
+![Computing the Query vector for a token](@/assets/images/artificial-intelligent/query-matrix-1.png)
+*Figure 5: Computing the Query vector $\vec{Q}_4$ for the token "creature" by multiplying its embedding $\vec{E}_4$ by the learned weight matrix $W_Q$. The resulting vector asks: "Any adjectives in front of me?"*
 
-#### 3. Comparing Queries with Keys
-The Query vector $Q_i$ is compared against every token's Key vector ($K_j$) using the dot product:
+#### 2. Parallel Computation Across All Tokens
+Every token embedding in the sequence is multiplied by the same weight matrix $W_Q$ simultaneously:
 
-$$\text{Score}_{ij} = Q_i \cdot K_j$$
+![Computing Query vectors for all tokens in parallel](@/assets/images/artificial-intelligent/query-matrix-2.png)
+*Figure 6: Each token's initial embedding $\vec{E}_i$ is projected by $W_Q$ into its corresponding Query vector $\vec{Q}_i$ in parallel.*
 
-A larger dot product result indicates that token $j$'s Key matches token $i$'s Query, signaling that information should flow from token $j$ into token $i$.
+#### 3. What Does a Query Do?
+In high-dimensional space, the Query vector encodes specific semantic questions:
+- For a noun like **"creature"**: Its Query asks, *"Are there adjectives preceding me that describe my appearance?"*
+- For an ambiguous noun like **"mole"**: Its Query asks, *"Is there context showing whether I am an animal or a chemistry unit?"*
+- For a verb like **"was"**: Its Query asks, *"Who or what is the subject of this clause?"*
+
+#### 4. Comparing Queries with Keys
+The Query vector $\vec{Q}_i$ is compared against every token's Key vector ($\vec{K}_j$) using the dot product:
+
+$$\text{Score}_{ij} = \vec{Q}_i \cdot \vec{K}_j$$
+
+A larger dot product result indicates that token $j$'s Key matches token $i$'s Query, signaling that contextual information should flow from token $j$ into token $i$.
+
 
