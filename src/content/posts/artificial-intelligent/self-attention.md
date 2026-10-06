@@ -94,11 +94,27 @@ In high-dimensional space, the Query vector encodes specific semantic questions:
 - For an ambiguous noun like **"mole"**: Its Query asks, *"Is there context showing whether I am an animal or a chemistry unit?"*
 - For a verb like **"was"**: Its Query asks, *"Who or what is the subject of this clause?"*
 
-#### 4. Comparing Queries with Keys
-The Query vector $\vec{Q}_i$ is compared against every token's Key vector ($\vec{K}_j$) using the dot product:
+---
+
+### Deep Dive: Key Vectors ($K$)
+
+While a **Query vector** asks a question, a **Key vector** ($\vec{K}_j$) advertises what information a token holds to answer potential queries.
+
+#### 1. Calculation via Linear Projection
+Just like Queries, Key vectors are computed by multiplying each token embedding by a separate learned weight matrix $W_K$:
+
+$$\vec{K}_j = W_K \vec{E}_j$$
+
+![Computing Key vectors to match queries](@/assets/images/artificial-intelligent/key-matrix-1.png)
+*Figure 7: Token embeddings are projected by $W_K$ into Key vectors $\vec{K}_j$. When $\vec{Q}_4$ ("creature") asks for adjectives, the keys for "fluffy" ($\vec{K}_2$) and "blue" ($\vec{K}_3$) respond: "I'm an adjective! I'm there!".*
+
+#### 2. Matching Queries and Keys (Dot Product)
+To determine how relevant token $j$ is to token $i$, the model computes the dot product between Query $\vec{Q}_i$ and Key $\vec{K}_j$:
 
 $$\text{Score}_{ij} = \vec{Q}_i \cdot \vec{K}_j$$
 
-A larger dot product result indicates that token $j$'s Key matches token $i$'s Query, signaling that contextual information should flow from token $j$ into token $i$.
+- **High Positive Score:** The Key matches the Query (e.g., `"creature"` $\cdot$ `"fluffy"`). High affinity means contextual information should transfer.
+- **Low or Negative Score:** The Key is irrelevant to the Query (e.g., `"creature"` $\cdot$ `"roamed"`). Little to no information will transfer.
+
 
 
