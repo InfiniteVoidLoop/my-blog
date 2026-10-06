@@ -111,10 +111,15 @@ $$\vec{K}_j = W_K \vec{E}_j$$
 #### 2. Matching Queries and Keys (Dot Product)
 To determine how relevant token $j$ is to token $i$, the model computes the dot product between Query $\vec{Q}_i$ and Key $\vec{K}_j$:
 
-$$\text{Score}_{ij} = \vec{Q}_i \cdot \vec{K}_j$$
+$$\text{Score}_{ij} = \vec{K}_j \cdot \vec{Q}_i$$
 
-- **High Positive Score:** The Key matches the Query (e.g., `"creature"` $\cdot$ `"fluffy"`). High affinity means contextual information should transfer.
-- **Low or Negative Score:** The Key is irrelevant to the Query (e.g., `"creature"` $\cdot$ `"roamed"`). Little to no information will transfer.
+![Attention Scores computed via dot product between every Key and Query](@/assets/images/artificial-intelligent/dot-product.jpg)
+*Figure 8: Dot product grid between all Keys ($\vec{K}_1 \dots \vec{K}_8$) and Queries ($\vec{Q}_1 \dots \vec{Q}_8$). Highlighted cells show strong alignment where Keys answer Queries—such as $\vec{K}_2$ ("fluffy") and $\vec{K}_3$ ("blue") strongly matching $\vec{Q}_4$ ("creature").*
+
+- **Geometric Meaning:** The dot product measures vector alignment. When a Query and a Key point in similar directions in embedding space, their dot product is large and positive.
+- **High Positive Score:** The Key matches the Query (e.g., $\vec{K}_{\text{fluffy}} \cdot \vec{Q}_{\text{creature}}$). Strong affinity indicates contextual information should transfer.
+- **Low or Negative Score:** The Key is irrelevant or orthogonal to the Query. Little to no information will transfer.
+
 
 
 
