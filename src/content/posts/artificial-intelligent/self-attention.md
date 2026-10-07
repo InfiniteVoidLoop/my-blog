@@ -140,6 +140,18 @@ If you are coming from the last chapter, you may be familiar with *softmax*, whi
 After we apply *softmax* to all the columns, we will get the grid with these normalized values, and we call this grid the **Attention Pattern**.
 
 ![The Attention Pattern grid](@/assets/images/artificial-intelligent/attention-pattern-grid.png)
+The original transformer paper presents us with a really compacted way to write this down (**The Attention Formula**):
+![The Attention Pattern Formula](@/assets/images/artificial-intelligent/original-transformer-attention.png)
+A small notice is that for numerical stability, it's helpful to divide these value by the square root of the dimension of key-query space, (sqrt dk)
 
+> [!NOTE]
+> Notice that **softmax** wrapped around the full expression is meant to understood as applying softmax column by column.
+
+Finally, I have cover the formula for attention pattern but what is the last factor in the formula.
+As for the V term, I will explain about it in just a second.
+
+
+
+ 
 
 
