@@ -120,6 +120,26 @@ $$\text{Score}_{ij} = \vec{K}_j \cdot \vec{Q}_i$$
 - **High Positive Score:** The Key matches the Query (e.g., $\vec{K}_{\text{fluffy}} \cdot \vec{Q}_{\text{creature}}$). Strong affinity indicates contextual information should transfer.
 - **Low or Negative Score:** The Key is irrelevant or orthogonal to the Query. Little to no information will transfer.
 
+> [!NOTE]
+> Conceptually, the vectors act as potential answers to the query vectors.
+
+## Value Vectors ($V$)
+
+After computing all the dot products of the key-query pairs, we get the grid with values ranging from $-\infty$ to $\infty$, which displays the relevance between words.
+
+![Computing grid for all key-query pairs](@/assets/images/artificial-intelligent/computing-grid-key-query.png)
+
+The way we're about to use these scores is by taking a certain value along each column with most relevance.
+
+But first, instead of having values between $-\infty$ and $\infty$, we want the values to be between $0$ and $1$ so they can be a probability distribution.
+
+If you are coming from the last chapter, you may be familiar with *softmax*, which is really useful in this case to normalize the values.
+
+![Softmax illustration down a column](@/assets/images/artificial-intelligent/softmax-illustration.png)
+
+After we apply *softmax* to all the columns, we will get the grid with these normalized values, and we call this grid the **Attention Pattern**.
+
+![The Attention Pattern grid](@/assets/images/artificial-intelligent/attention-pattern-grid.png)
 
 
 
