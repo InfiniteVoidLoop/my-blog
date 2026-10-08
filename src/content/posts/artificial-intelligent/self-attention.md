@@ -219,7 +219,7 @@ In matrix notation, this is the final $V$ term in the Attention Formula:
 $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) V$$
 
 ![Computing the delta embedding and updating token representations](@/assets/images/artificial-intelligent/delta-embedding.png)
-*Figure 18: The weighted sum of Value vectors produces $\Delta \vec{E}$, which is added to the original embedding $\vec{E}$ to yield the enriched contextual representation $\vec{E}'$*
+*Figure 18: The weighted sum of Value vectors produces $\Delta \vec{E}$, which is added to the original embedding $\vec{E}$ to yield the enriched contextual representation $\vec{E}'$.*
 
 Finally, this change vector is added back to the original token embedding:
 
@@ -249,9 +249,22 @@ $$\text{Parameters per matrix} = 128 \times 12,288 = 1,572,864 \text{ parameters
 
 If the Value matrix mapped directly from the embedding space back into the embedding space, it would be a massive square matrix ($12,288 \times 12,288$), requiring **$150,994,944$ parameters** — nearly 100× more than the Query and Key matrices!
 
+![Value matrix computation and parameter efficiency](@/assets/images/artificial-intelligent/value-matrix-computation.png)
+*Figure 20: Reducing the parameter to match the Query and Key matrices.*
+
 In practice, Transformers keep this computationally efficient:
 - The Value projection matrix also projects down into a smaller subspace ($d_v = 128$), allocating the **exact same parameter budget** ($1,572,864$ parameters) as $W_Q$ and $W_K$.
 - An output projection matrix then maps the aggregated result back into the full $12,288$-dimensional embedding space.
+
+In Linear Algebra terms, what we're doing is mapping the bigger space to a smaller space which is called **low-rank transformation**.
+
+![Low-rank transformation mapping high-dimensional space through a lower-dimensional bottleneck](@/assets/images/artificial-intelligent/low-rank-transformation.png)
+*Figure 21: Low-rank transformation factors a large $12,288 \times 12,288$ mapping into two smaller matrices ($128 \times 12,288$ and $12,288 \times 128$), vastly reducing parameters.*
+
+Going back to the parameter count of GPT-3, all four of these matrices have the same size, and by adding those up we get about 6.3 million parameters for one attention head.
+
+![Total parameters for four projection matrices in one GPT-3 attention head](@/assets/images/artificial-intelligent/gpt-weight-in-practice.png)
+*Figure 22: All four matrices ($W_Q, W_K, W_V, W_O$) in one GPT-3 attention head contribute $4 \times 1,572,864 \approx 6.3\text{M}$ parameters in total.*
 
 ---
 
