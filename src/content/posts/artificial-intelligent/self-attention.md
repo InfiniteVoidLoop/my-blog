@@ -198,7 +198,8 @@ As in the image, **creature** is somehow updated by the word **fluffy**, the new
 
 > [!NOTE]
 > When a Value matrix is multiplied with the word's embedding, we can think of it as answering the question: 
-> *If this word is relevant to the other words, what specific adjustments should be made to make the other word's embedding reflect this relevance accurately?*
+>
+> - *If this word is relevant to the other words, what specific adjustments should be made to make the other word's embedding reflect this relevance accurately?*
 
 This Value matrix is multiplied with every one of those embeddings to produce a sequence of **Value vectors** in parallel:
 
@@ -218,13 +219,39 @@ In matrix notation, this is the final $V$ term in the Attention Formula:
 $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) V$$
 
 ![Computing the delta embedding and updating token representations](@/assets/images/artificial-intelligent/delta-embedding.png)
-*Figure 18: The weighted sum of Value vectors produces $\Delta \vec{E}$, which is added to the original embedding $\vec{E}$ to yield the enriched contextual representation $\vec{E}'$.*
+*Figure 18: The weighted sum of Value vectors produces $\Delta \vec{E}$, which is added to the original embedding $\vec{E}$ to yield the enriched contextual representation $\vec{E}'$*
 
 Finally, this change vector is added back to the original token embedding:
 
 $$\vec{E}_i' = \vec{E}_i + \Delta \vec{E}_i$$
 
-Now, each token's vector representation is no longer static—it has absorbed all the relevant context from the surrounding sequence!
+Now, each token's vector representation is no longer static — it has absorbed all the relevant context from the surrounding sequence!
+
+---
+
+## Counting Parameters (GPT-3 Example)
+
+Let's take a moment to count up the parameters introduced by a single attention head using concrete numbers from **GPT-3**:
+
+- **Embedding Dimension ($d_{\text{model}}$):** $12,288$
+- **Key-Query Space Dimension ($d_k$):** $128$
+
+### Key & Query Matrices ($W_K, W_Q$)
+
+Each Query and Key matrix projects the $12,288$-dimensional embedding space down into a $128$-dimensional subspace:
+
+$$\text{Parameters per matrix} = 128 \times 12,288 = 1,572,864 \text{ parameters}$$
+
+![Dimensions and parameter count for Query and Key matrices in GPT-3](@/assets/images/artificial-intelligent/key-query-dim-gpt3.png)
+*Figure 19: In GPT-3, the Query and Key projection matrices have dimensions $128 \times 12,288$, adding ~1.57M parameters each.*
+
+### Value Matrix ($W_V$) & Parameter Efficiency
+
+If the Value matrix mapped directly from the embedding space back into the embedding space, it would be a massive square matrix ($12,288 \times 12,288$), requiring **$150,994,944$ parameters** — nearly 100× more than the Query and Key matrices!
+
+In practice, Transformers keep this computationally efficient:
+- The Value projection matrix also projects down into a smaller subspace ($d_v = 128$), allocating the **exact same parameter budget** ($1,572,864$ parameters) as $W_Q$ and $W_K$.
+- An output projection matrix then maps the aggregated result back into the full $12,288$-dimensional embedding space.
 
 ---
 
@@ -235,3 +262,4 @@ In a Single-Head Self-Attention block:
 2. **Keys ($K$)** advertise what information a token contains.
 3. **Attention Pattern** calculates how relevant each token is to every other token using $\text{softmax}(Q K^T / \sqrt{d_k})$.
 4. **Values ($V$)** provide the actual content to transfer, computing a delta vector $\Delta \vec{E}$ that updates each token's embedding with context.
+5. **Parameter Efficiency:** Projection matrices compress high-dimensional embeddings into smaller subspaces ($128$ dimensions in GPT-3) to keep parameter counts manageable.
