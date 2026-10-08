@@ -284,14 +284,50 @@ And notice that in this setting there would typically be no masking, since there
 ![Cross-attention architecture with Keys/Values from source and Queries from target](@/assets/images/artificial-intelligent/cross-attention-2.png)
 *Figure 24: In cross-attention, Queries come from the target sequence while Keys and Values come from the source sequence, producing an unmasked alignment grid across data streams.*
 
+## Multi-Headed Attention
+
+All the information we have covered so far is contained in a single head of attention. In modern LLMs, a full attention block consists of multiple heads running in parallel, which is called **Multi-Headed Attention**, where operations run simultaneously with distinct *Key*, *Query*, and *Value* weight matrices.
+
+![Overview of Multi-Headed Attention](@/assets/images/artificial-intelligent/multi-head-attention-intro.png)
+*Figure 25: Multi-Headed Attention runs many attention heads simultaneously (e.g., 96 heads in GPT-3), allowing the model to capture multiple distinct relationships at once.*
+
+### Why Multiple Heads?
+
+A single attention head can only focus on one type of relationship at a time (like matching adjectives to nouns). With multiple heads running in parallel:
+- **Head 1:** Focuses on adjective-noun relationships.
+- **Head 2:** Resolves pronoun references (e.g., connecting "it" to the appropriate animal or object).
+- **Head 3:** Tracks subject-verb agreement across distant clauses.
+
+### Parallel Computation Across Heads
+
+Each head has its own independent Query, Key, and Value matrices ($W_Q^{(h)}, W_K^{(h)}, W_V^{(h)}$) and computes its attention pattern in parallel:
+
+![Parallel computation of attention patterns across multiple heads](@/assets/images/artificial-intelligent/multi-head-attention-computation.png)
+*Figure 26: Each attention head performs its own QKV projections and attention pattern calculations in parallel.*
+
+### Aggregating Multi-Head Updates
+
+Each attention head produces its own delta vector ($\Delta \vec{E}^{(h)}$) representing the specialized context it gathered:
+
+![Multi-head update vectors produced by each head](@/assets/images/artificial-intelligent/multi-head-attention-update-embedding.png)
+*Figure 27: Every attention head computes a separate change vector ($\Delta \vec{E}^{(h)}$) corresponding to its specialized focus.*
+
+Finally, the updates from all heads are combined and added back into the original embedding:
+
+$$\vec{E}' = \vec{E} + \Delta \vec{E}_{\text{multi-head}}$$
+
+![Final embedding updated with multi-headed context](@/assets/images/artificial-intelligent/new-embedding-multihead-attention.png)
+*Figure 28: The outputs of all attention heads are aggregated and added to the original embedding, producing a rich, multi-faceted contextual representation.*
+
 ---
 
 ## Summary
 
-In a Single-Head Self-Attention block:
+In modern Transformer architectures:
 1. **Queries ($Q$)** broadcast what information a token is looking for.
 2. **Keys ($K$)** advertise what information a token contains.
 3. **Attention Pattern** calculates how relevant each token is to every other token using $\text{softmax}(Q K^T / \sqrt{d_k})$.
 4. **Values ($V$)** provide the actual content to transfer, computing a delta vector $\Delta \vec{E}$ that updates each token's embedding with context.
 5. **Parameter Efficiency:** Projection matrices compress high-dimensional embeddings into smaller subspaces ($128$ dimensions in GPT-3) to keep parameter counts manageable.
-6. **Cross-Attention Variation:** Queries and Keys/Values originate from two distinct sequences (e.g. translation or multimodal tasks) without causal masking.
+6. **Cross-Attention:** Queries and Keys/Values originate from two distinct sequences (e.g. translation or multimodal tasks) without causal masking.
+7. **Multi-Headed Attention:** Runs dozens of independent attention heads in parallel to capture diverse linguistic and contextual relationships simultaneously.
