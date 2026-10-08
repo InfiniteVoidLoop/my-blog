@@ -128,6 +128,7 @@ $$\text{Score}_{ij} = \vec{K}_j \cdot \vec{Q}_i$$
 After computing all the dot products of the key-query pairs, we get the grid with values ranging from $-\infty$ to $\infty$, which displays the relevance between words.
 
 ![Computing grid for all key-query pairs](@/assets/images/artificial-intelligent/computing-grid-key-query.png)
+*Figure 9: The raw dot-product score grid computed for all Key-Query pairs, showing relevance scores ranging from $-\infty$ to $\infty$.*
 
 The way we're about to use these scores is by taking a certain value along each column with most relevance.
 
@@ -136,22 +137,48 @@ But first, instead of having values between $-\infty$ and $\infty$, we want the 
 If you are coming from the last chapter, you may be familiar with *softmax*, which is really useful in this case to normalize the values.
 
 ![Softmax illustration down a column](@/assets/images/artificial-intelligent/softmax-illustration.png)
+*Figure 10: Applying softmax down each column to normalize scores into a valid probability distribution.*
 
 After we apply *softmax* to all the columns, we will get the grid with these normalized values, and we call this grid the **Attention Pattern**.
 
 ![The Attention Pattern grid](@/assets/images/artificial-intelligent/attention-pattern-grid.png)
+*Figure 11: The Attention Pattern grid after applying softmax column-by-column.*
+
 The original transformer paper presents us with a really compacted way to write this down (**The Attention Formula**):
+
 ![The Attention Pattern Formula](@/assets/images/artificial-intelligent/original-transformer-attention.png)
-A small notice is that for numerical stability, it's helpful to divide these value by the square root of the dimension of key-query space, (sqrt dk)
+*Figure 12: The Attention Formula from the original Transformer paper ("Attention Is All You Need").*
+
+A small notice is that for numerical stability, it's helpful to divide these values by the square root of the dimension of key-query space ($\sqrt{d_k}$).
 
 > [!NOTE]
 > Notice that **softmax** wrapped around the full expression is meant to understood as applying softmax column by column.
 
 Finally, I have cover the formula for attention pattern but what is the last factor in the formula.
-As for the V term, I will explain about it in just a second.
+As for the $V$ term, I will explain about it in just a second.
 
+In earlier blog, I have shown that during the training process, the model is run on a given text example, guess the next word. Then the model will adjust the weights based on the probability assigns to the *true next word*.
 
+But in real word, there is actually more to this. It turns out that in order to make the process more efficient, the model also simultaneously predicts every next token during a sentence. 
+It runs in parallel the sentences as below:
 
- 
+![Predicting next tokens in parallel across sequence prefixes](@/assets/images/artificial-intelligent/parallel-prediction.png)
+*Figure 13: The model simultaneously predicts every subsequent token in parallel during training.*
 
+This makes the training process become more efficient.
 
+However, there is a problem that the model can look at the words that appear *later* can be influence to the words that *appear* earlier since these sentences are running simultaneously. This is just like a student doing the examination with direct answers next to it.
+
+In order to prevent this, what we currently do is to force the spots where later token have influence on the earlier token somehow become zero. A common way to do this is that prior to applying softmax, we set all the value in **Attention Pattern Grid** with those entries become negative infinity ($-\infty$). This will make the softmax value become zero and thus the later token will not have any influence on the earlier token.
+
+This process is called **masking**.
+
+![Masking future tokens in the Attention Pattern grid](@/assets/images/artificial-intelligent/masking.png)
+*Figure 14: Masking sets the upper-triangular scores in the Attention Pattern to $-\infty$ prior to softmax to prevent attention from flowing backwards from future tokens.*
+
+Another fact is that this reflecting how the size of this attention is equal to **context size**
+
+![Attention Pattern dimension bounded by context size](@/assets/images/artificial-intelligent/context-size.png)
+*Figure 15: The dimensions of the Attention Pattern grid correspond directly to the model's context size.*
+
+This is why the context size could act as a significant limitation for large language models and why scaling up is nontrivial. But of course, motivated by the larger context window, in recent years, some variations have been released but for now let's start at the basics.
