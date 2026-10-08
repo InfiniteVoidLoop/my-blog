@@ -266,6 +266,24 @@ Going back to the parameter count of GPT-3, all four of these matrices have the 
 ![Total parameters for four projection matrices in one GPT-3 attention head](@/assets/images/artificial-intelligent/gpt-weight-in-practice.png)
 *Figure 22: All four matrices ($W_Q, W_K, W_V, W_O$) in one GPT-3 attention head contribute $4 \times 1,572,864 \approx 6.3\text{M}$ parameters in total.*
 
+## Cross-Attention
+
+As a quick note, all what we are talked about so far is called *self-attention*, which is different from a variation called **cross-attention**.
+
+A cross-attention head is involved in models that process two distinct types of data, like text in one language and text in another language that's part of an ongoing generation of a translation.
+
+![Cross-attention between two distinct sequences or data types](@/assets/images/artificial-intelligent/cross-attention-1.png)
+*Figure 23: Cross-attention connects two different data streams (e.g., source language and target language translation).*
+
+A cross-attention head looks almost identical to a self-attention head, with the only difference being that the key and query maps act on different data sets.
+
+In a model doing translation, for example, the keys might come from one language, while the queries come from another, and the attention pattern could tell relevance of words from one language correspond to which words in another. 
+
+And notice that in this setting there would typically be no masking, since there's not really any notion of later tokens affecting earlier ones.
+
+![Cross-attention architecture with Keys/Values from source and Queries from target](@/assets/images/artificial-intelligent/cross-attention-2.png)
+*Figure 24: In cross-attention, Queries come from the target sequence while Keys and Values come from the source sequence, producing an unmasked alignment grid across data streams.*
+
 ---
 
 ## Summary
@@ -276,3 +294,4 @@ In a Single-Head Self-Attention block:
 3. **Attention Pattern** calculates how relevant each token is to every other token using $\text{softmax}(Q K^T / \sqrt{d_k})$.
 4. **Values ($V$)** provide the actual content to transfer, computing a delta vector $\Delta \vec{E}$ that updates each token's embedding with context.
 5. **Parameter Efficiency:** Projection matrices compress high-dimensional embeddings into smaller subspaces ($128$ dimensions in GPT-3) to keep parameter counts manageable.
+6. **Cross-Attention Variation:** Queries and Keys/Values originate from two distinct sequences (e.g. translation or multimodal tasks) without causal masking.
