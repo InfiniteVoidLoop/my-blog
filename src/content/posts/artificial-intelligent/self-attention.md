@@ -182,3 +182,56 @@ Another fact is that this reflecting how the size of this attention is equal to 
 *Figure 15: The dimensions of the Attention Pattern grid correspond directly to the model's context size.*
 
 This is why the context size could act as a significant limitation for large language models and why scaling up is nontrivial. But of course, motivated by the larger context window, in recent years, some variations have been released but for now let's start at the basics.
+
+### Deep Dive: Value Vectors ($V$)
+
+Once you have this attention pattern describing the relationship between the tokens, the next step is to actually update those embeddings.
+
+The most straightforward way is like the other 2 steps, which uses a third learned matrix called the **Value Matrix** ($W_V$). The result of this is what we call a **Value vector** ($\vec{V}$), which represents the information to add to other words to update their meanings.
+
+$$\vec{V}_j = W_V \vec{E}_j$$
+
+![Value vector projection for a token](@/assets/images/artificial-intelligent/value-matrix-update-example.png)
+*Figure 16: Multiplying the embedding of "fluffy" by $W_V$ creates a Value vector. When added to "creature", the updated embedding now encodes the combined meaning of "fluffy creature".*
+
+As in the image, **creature** is somehow updated by the word **fluffy**, the new vector embedding encodes the meaning of **fluffy creature**. Seems familiar now? This is the main idea inside **Token Ingestion**.
+
+> [!NOTE]
+> When a Value matrix is multiplied with the word's embedding, we can think of it as answering the question: 
+> *If this word is relevant to the other words, what specific adjustments should be made to make the other word's embedding reflect this relevance accurately?*
+
+This Value matrix is multiplied with every one of those embeddings to produce a sequence of **Value vectors** in parallel:
+
+![Value vectors computed for all tokens in parallel](@/assets/images/artificial-intelligent/value-vector-sequence.png)
+*Figure 17: Each token embedding $\vec{E}_i$ is projected by $W_V$ into its corresponding Value vector $\vec{V}_i$ in parallel.*
+
+### Updating the Token Embeddings ($\Delta \vec{E}$)
+
+Now, we combine the **Attention Pattern** weights with the **Value vectors**.
+
+For each token, we compute a weighted sum of all Value vectors based on their attention weights, producing a change vector $\Delta \vec{E}$:
+
+$$\Delta \vec{E}_i = \sum_j \text{Attention}(i, j) \cdot \vec{V}_j$$
+
+In matrix notation, this is the final $V$ term in the Attention Formula:
+
+$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) V$$
+
+![Computing the delta embedding and updating token representations](@/assets/images/artificial-intelligent/delta-embedding.png)
+*Figure 18: The weighted sum of Value vectors produces $\Delta \vec{E}$, which is added to the original embedding $\vec{E}$ to yield the enriched contextual representation $\vec{E}'$.*
+
+Finally, this change vector is added back to the original token embedding:
+
+$$\vec{E}_i' = \vec{E}_i + \Delta \vec{E}_i$$
+
+Now, each token's vector representation is no longer static—it has absorbed all the relevant context from the surrounding sequence!
+
+---
+
+## Summary
+
+In a Single-Head Self-Attention block:
+1. **Queries ($Q$)** broadcast what information a token is looking for.
+2. **Keys ($K$)** advertise what information a token contains.
+3. **Attention Pattern** calculates how relevant each token is to every other token using $\text{softmax}(Q K^T / \sqrt{d_k})$.
+4. **Values ($V$)** provide the actual content to transfer, computing a delta vector $\Delta \vec{E}$ that updates each token's embedding with context.
