@@ -286,19 +286,11 @@ And notice that in this setting there would typically be no masking, since there
 
 ## Multi-Headed Attention
 
-All the information we have covered so far is contained in a single head of attention. In modern LLMs, a full attention block consists of multiple heads running in parallel, which is called **Multi-Headed Attention**, where operations run simultaneously with distinct *Key*, *Query*, and *Value* weight matrices.
+* All the information we have covered so far is contained in a single head of attention. 
+* In modern LLMs, a full attention block consists of multiple heads running in parallel, which is called **Multi-Headed Attention**, where operations run simultaneously with distinct *Key*, *Query*, and *Value* weight matrices.
 
 ![Overview of Multi-Headed Attention](@/assets/images/artificial-intelligent/multi-head-attention-intro.png)
 *Figure 25: Multi-Headed Attention runs many attention heads simultaneously (e.g., 96 heads in GPT-3), allowing the model to capture multiple distinct relationships at once.*
-
-### Why Multiple Heads?
-
-A single attention head can only focus on one type of relationship at a time (like matching adjectives to nouns). With multiple heads running in parallel:
-- **Head 1:** Focuses on adjective-noun relationships.
-- **Head 2:** Resolves pronoun references (e.g., connecting "it" to the appropriate animal or object).
-- **Head 3:** Tracks subject-verb agreement across distant clauses.
-
-### Parallel Computation Across Heads
 
 Each head has its own independent Query, Key, and Value matrices ($W_Q^{(h)}, W_K^{(h)}, W_V^{(h)}$) and computes its attention pattern in parallel:
 
