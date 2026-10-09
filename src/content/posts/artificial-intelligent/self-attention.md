@@ -320,6 +320,6 @@ In modern Transformer architectures:
 2. **Keys ($K$)** advertise what information a token contains.
 3. **Attention Pattern** calculates how relevant each token is to every other token using $\text{softmax}(Q K^T / \sqrt{d_k})$.
 4. **Values ($V$)** provide the actual content to transfer, computing a delta vector $\Delta \vec{E}$ that updates each token's embedding with context.
-5. **Parameter Efficiency:** Projection matrices compress high-dimensional embeddings into smaller subspaces ($128$ dimensions in GPT-3) to keep parameter counts manageable.
-6. **Cross-Attention:** Queries and Keys/Values originate from two distinct sequences (e.g. translation or multimodal tasks) without causal masking.
-7. **Multi-Headed Attention:** Runs dozens of independent attention heads in parallel to capture diverse linguistic and contextual relationships simultaneously.
+5. **Cross-Attention:** Queries and Keys/Values originate from two distinct sequences (e.g. translation or multimodal tasks) without causal masking.
+6. **Multi-Headed Attention:** Runs dozens of independent attention heads in parallel to capture diverse linguistic and contextual relationships simultaneously.
+7. **Low-rank transformation**: Reduce matrix dimensions to save parameters while preserving expressivity.
