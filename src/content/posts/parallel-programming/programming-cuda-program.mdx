@@ -1,7 +1,7 @@
 ---
 author: DangVoHongPhuc
 pubDatetime: 2026-07-26T20:09:20+07
-title: "Programming CUDA Program: Vector Addition & Kernel Optimization"
+title: "Introduction of a baisc CUDA Program"
 slug: programming-cuda-program
 featured: false
 draft: false
@@ -179,7 +179,24 @@ struct GpuTimer {
 };
 ```
 
+### C. CUDA Function Execution Space Qualifiers
+
+In CUDA C/C++, function qualifiers define **where a function is called from (Caller)** and **where it executes (Target)**:
+
+| Qualifier | Caller | Target | Return Type | Call Syntax |
+| :--- | :--- | :--- | :--- | :--- |
+| `__global__` | Host (CPU) *(or GPU with Dynamic Parallelism)* | Device (GPU) | Must be `void` | Kernel launch: `func<<<grid, block>>>(args)` |
+| `__device__` | Device (GPU) | Device (GPU) | Any (`int`, `float`,...) | Normal call: `func(args)` |
+| `__host__` *(default)* | Host (CPU) | Host (CPU) | Any | Normal call: `func(args)` |
+| `__device__ __host__` | Both CPU & GPU | Depends on caller | Any | Normal call: `func(args)` |
+
+* **`__global__`:** Declares a **kernel function** executed in parallel by multiple GPU threads.
+* **`__device__`:** Declares a helper device function callable only from inside a kernel or other device functions.
+* **`__host__`:** Regular C/C++ function running on the CPU (default when no qualifier is written).
+* **`__device__ __host__`:** Compiles two versions of the function so it can be called seamlessly on both CPU and GPU (e.g., common math utilities).
+
 ---
+
 
 ## 3. Deep Dive: Vector Addition Implementations
 

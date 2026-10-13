@@ -91,7 +91,23 @@ In contrast, the **transistor count** continues to scale up exponentially accord
 > [!TIP]
 > **CUDA** (Compute Unified Device Architecture) allows us to write programs taking full advantage of both CPU and GPU (NVIDIA).
 
+### Compiling a CUDA Program (NVCC)
+
+A CUDA source file (`.cu`) contains a mix of standard **Host code** (C/C++ intended for the CPU) and **Device code** (CUDA kernels intended for the GPU). 
+
+To handle this heterogeneous code, NVIDIA provides the **NVCC (NVIDIA CUDA Compiler)** driver:
+
+![NVCC Compilation Workflow](@/assets/images/parallel_programming/nvcc.png)
+*Figure: The NVCC compilation flow separates host and device code to run across heterogeneous computing platforms.*
+
+1. **Code Separation:** NVCC parses the integrated CUDA program and splits it into two streams:
+   - **Host Code:** Forwarded to a standard host C/C++ compiler (such as GCC, Clang, or MSVC) and linked into standard CPU object code.
+   - **Device Code:** Compiled into an intermediate virtual assembly format called **PTX (Parallel Thread Execution)** or directly into native GPU machine code (SASS).
+2. **Just-In-Time (JIT) Compilation:** At runtime, the GPU driver's Device JIT Compiler can further compile PTX into device-specific binary code for the target GPU architecture.
+3. **Execution on Heterogeneous Platforms:** The resulting binary runs seamlessly on heterogeneous systems, executing sequential control tasks on the CPU while offloading parallel kernels to the GPU.
+
 ---
+
 
 ## Common Languages & Frameworks for Parallel Programming 🛠️
 
