@@ -59,4 +59,20 @@ As you can see above, these architectures are quite similar. In fact, **CUDA vir
 
 We will discuss and provide concrete examples about this later.
 
+### What is a Warp? ⚡
+
+In software, program pretends every thread runs on its own. But down in hardware, the GPU doesn't bother managing single threads—it bundles **32 threads together into a single unit called a Warp**.
+
+> [!TIP]
+> In simple terms, a **Warp** is just a group of **32 threads**
+
+![Warp Hardware Execution Model](@/assets/images/parallel_programming/warp.png)
+*Figure 4: Logical Thread Blocks partitioned into 32-thread hardware Warps executed by an SM.*
+
+Here is how this works:
+
+1. **Software View (SIMT — Single Instruction, Multiple Threads):**  
+   Every thread believes it's the main character. It has its own program counter, its own registers, and executes the entire kernel from top to bottom.
+2. **Hardware Reality (Lockstep Execution):**  
+   A GPU doesn't give every thread its own expensive instruction decoder. Instead, **one single instruction unit** issues **one instruction at a time** (like `FADD` or `FMUL`) to all 32 threads in the warp, which then execute simultaneously in ALUs.
 
