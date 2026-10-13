@@ -76,3 +76,33 @@ Here is how this works:
 2. **Hardware Reality (Lockstep Execution):**  
    A GPU doesn't give every thread its own expensive instruction decoder. Instead, **one single instruction unit** issues **one instruction at a time** (like `FADD` or `FMUL`) to all 32 threads in the warp, which then execute simultaneously in ALUs.
 
+---
+
+### Warp Scheduler: Latency Hiding in Action 🔄
+
+What happens when a Warp has to wait 200–400 clock cycles to fetch data from memory (DRAM)? Does the GPU stall and take a coffee break? **Never.**
+
+This is where the **Warp Scheduler** shines:
+
+![Warp Scheduler Hardware Execution Timeline](@/assets/images/parallel_programming/warp-scheduler.png)
+*Figure 5: Warp Scheduler and Instruction Dispatch Units cycling through active Warps across time.*
+
+#### How the Scheduling Flow Works (Zero-Overhead Context Switching):
+
+In each SM, the **Warp Scheduler** continuously scans all assigned warps to see which ones are ready to calculate. Switching between warps costs **zero clock cycles** because every warp's state (registers) stays resident on chip:
+
+```
+[Cycle 1] ──► Warp 8 is ready  ──► Dispatch Instruction 11 (e.g. Memory Load)
+[Cycle 2] ──► Warp 8 is WAITING for memory!
+              Warp Scheduler immediately swaps:
+              ──► Warp 2 is ready  ──► Dispatch Instruction 42 (e.g. Math FADD)
+[Cycle 3] ──► Warp 14 is ready ──► Dispatch Instruction 95
+  ...
+[Cycle N] ──► Warp 8's data arrived!
+              ──► Warp 8 is back in action ──► Dispatch Instruction 12
+```
+
+> [!TIP]
+> **Latency Hiding:** While one Warp waits for slow memory data, other Warps keep the CUDA cores 100% busy doing calculations. 
+
+
