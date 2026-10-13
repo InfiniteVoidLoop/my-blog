@@ -123,7 +123,7 @@ $$\text{Score}_{ij} = \vec{K}_j \cdot \vec{Q}_i$$
 > [!NOTE]
 > Conceptually, the vectors act as potential answers to the query vectors.
 
-## Value Vectors ($V$)
+## Value Vectors
 
 After computing all the dot products of the key-query pairs, we get the grid with values ranging from $-\infty$ to $\infty$, which displays the relevance between words.
 
