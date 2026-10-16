@@ -45,12 +45,12 @@ Here is a simple simulation circuit connecting an LDR with an **Arduino Uno** us
 ![Photoresistor Arduino Simulation](@/assets/images/iot/photonresistor-simulation.png)
 *Figure 2: Breadboard simulation circuit connecting an LDR to Arduino Uno analog pin A0.*
 
-#### Circuit Connections
+##### Circuit Connections
 - **5V $\rightarrow$ LDR:** One leg connects to the **5V** rail.
 - **LDR $\rightarrow$ A0 & Resistor:** The other leg connects to **A0** and a pull-down resistor ($10\text{k}\Omega$).
 - **Resistor $\rightarrow$ GND:** The resistor connects to **GND** to complete the voltage divider.
 
-#### Arduino Example Code
+##### Arduino Example Code
 ```cpp
 const int LDR_PIN = A0; // Connect to Analog pin A0
 
@@ -80,11 +80,11 @@ Now, let's turn this into a real-world smart application: an **automatic night l
 ![Photoresistor and LED Integrated Circuit](@/assets/images/iot/photoresistor-led-integrate.png)
 *Figure 3: Arduino circuit controlling an LED based on LDR light readings.*
 
-#### Additional Circuit Connections
+##### Additional Circuit Connections
 - **Digital Pin 5 $\rightarrow$ LED Anode (+):** Connects to the positive leg of the LED to control power via code.
 - **LED Cathode (-) $\rightarrow$ LDR / GND:** Ground connection completes the circuit.
 
-#### Arduino Example Code
+##### Arduino Example Code
 ```cpp
 const int LDR_PIN = A0;   // Photoresistor connected to Analog A0
 const int LED_PIN = 5;    // LED connected to Digital Pin 5
