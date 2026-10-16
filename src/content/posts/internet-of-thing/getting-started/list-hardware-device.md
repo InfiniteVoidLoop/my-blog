@@ -189,12 +189,63 @@ void loop() {
 > - $2\mu\text{s}$ `LOW` pulse ensures a clean, noise-free rising edge.
 
 
+### Push Button (Tactile Switch) 🔘
+
+![Push Button Pinout](@/assets/images/iot/push-button.png)
+*Figure 6: Tactile push button internal connection diagram.*
+
+A **push button** (or tactile switch) is an input sensor that connects two points in a circuit when pressed.
+
+#### Pin Configuration
+Although it has 4 pins, they are connected in pairs internally:
+- **Pin A is connected to Pin C**
+- **Pin B is connected to Pin D**
+- When pressed, it connects **(A, C)** to **(B, D)** to close the circuit.
+
+---
+
+#### Simulation & Arduino Code ⚡
+
+Here is a push button connected to an **Arduino Uno** using a **pull-down resistor** ($10\text{k}\Omega$):
+
+![Push Button Arduino Simulation](@/assets/images/iot/push-button-simulation.png)
+*Figure 7: Push button circuit with a pull-down resistor connected to Arduino Pin 12.*
+
+#### Circuit Connections
+- **5V $\rightarrow$ Button Pin (B/D):** Supplies 5V to one side of the button.
+- **Button Pin (A/C) $\rightarrow$ Digital Pin 12:** Reads the button state (`HIGH` or `LOW`).
+- **Button Pin (A/C) $\rightarrow$ Resistor ($10\text{k}\Omega$) $\rightarrow$ GND:** Pulls the pin to ground when released.
+
+#### Arduino Example Code
+```cpp
+const int BUTTON_PIN = 12;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(BUTTON_PIN, INPUT);
+}
+
+void loop() {
+  int buttonState = digitalRead(BUTTON_PIN);
+
+  if (buttonState == HIGH) {
+    Serial.println("Button Pressed!");
+  } else {
+    Serial.println("Button Released");
+  }
+
+  delay(200);
+}
+```
+
+---
+
 ## Actuator Devices
 
 ### Buzzer (Active & Passive) 🔊
 
 ![Buzzer Module](@/assets/images/iot/buzzer.png)
-*Figure 6: A standard buzzer module.*
+*Figure 8: A standard buzzer module.*
 
 A **buzzer** is a small component that makes sound—like beeps, clicks, or alarms.
 
@@ -220,7 +271,7 @@ There are two main types of buzzers:
 Here is a simple simulation wiring a buzzer to an **Arduino Uno** to play a melody:
 
 ![Buzzer Arduino Simulation](@/assets/images/iot/buzzer-simulation.png)
-*Figure 7: Buzzer simulation connected to Arduino Uno Pin 5 and GND.*
+*Figure 9: Buzzer simulation connected to Arduino Uno Pin 5 and GND.*
 
 #### Circuit Connections
 - **Positive Pin (+) $\rightarrow$ Digital Pin 5:** Sends frequency pulses to produce sound notes.
