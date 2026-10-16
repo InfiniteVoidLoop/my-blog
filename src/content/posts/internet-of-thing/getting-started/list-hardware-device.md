@@ -189,4 +189,68 @@ void loop() {
 > - $2\mu\text{s}$ `LOW` pulse ensures a clean, noise-free rising edge.
 
 
+## Actuator Devices
+
+### Buzzer (Active & Passive) 🔊
+
+![Buzzer Module](@/assets/images/iot/buzzer.png)
+*Figure 6: A standard buzzer module.*
+
+A **buzzer** is a small component that makes sound—like beeps, clicks, or alarms.
+
+#### Active vs. Passive Buzzer
+
+There are two main types of buzzers:
+
+| Feature | Active Buzzer 🟢 | Passive Buzzer 🔵 |
+| :--- | :--- | :--- |
+| **How it works** | Has a built-in sound generator | Needs an external sound wave |
+| **How to control** | Just turn power on/off (`HIGH` / `LOW`) | Send frequencies using `tone()` |
+| **Sound** | One fixed "beep" sound | Can play different musical notes |
+| **Best used for** | Simple warning beeps & alarms | Songs, melodies, and sound effects |
+
+#### Pins (Polarity)
+- **Longer leg (+):** Marked with a `+` on the plastic cap $\rightarrow$ Connect to an Arduino digital pin (or $5\text{V}$).
+- **Shorter leg (-):** Connect to `GND`.
+
+---
+
+#### Simulation & Arduino Code 🎵
+
+Here is a simple simulation wiring a buzzer to an **Arduino Uno** to play a melody:
+
+![Buzzer Arduino Simulation](@/assets/images/iot/buzzer-simulation.png)
+*Figure 7: Buzzer simulation connected to Arduino Uno Pin 5 and GND.*
+
+#### Circuit Connections
+- **Positive Pin (+) $\rightarrow$ Digital Pin 5:** Sends frequency pulses to produce sound notes.
+- **Negative Pin (-) $\rightarrow$ GND:** Ground reference.
+
+#### Arduino Example Code
+```cpp
+int buzzer_pin = 5;
+
+void setup() {
+  pinMode(buzzer_pin, OUTPUT);
+}
+
+void loop() {
+  int notes_len = 25;
+  int frequency[] = {262, 262, 294, 262, 349, 330, 262, 262, 294, 262, 
+  392, 349, 262, 262, 523, 440, 349, 330, 294, 466, 466, 440, 349, 392, 349};
+  float duration[] = {0.5, 0.5, 1, 1, 1, 2, 0.5, 0.5, 1, 1, 1, 2, 0.5, 
+  0.5, 1, 1, 1, 1, 3, 0.5, 0.5, 1, 1, 1, 2};
+
+  for (int i = 0; i < notes_len; i++) {
+    tone(buzzer_pin, frequency[i], duration[i] * 1000);
+    delay(500);
+  }
+  noTone(buzzer_pin);
+}
+```
+
+> [!TIP]
+> - `tone(pin, frequency, duration)` sends a sound frequency (in Hz) to the buzzer for a set duration.
+> - `noTone(pin)` shuts off the sound when the melody finishes.
+
 
