@@ -38,7 +38,7 @@ This blog is my diary recording my journey of learning about IoT, particularly t
 
 ---
 
-### Simulation & Arduino Code ⚡
+#### Simulation & Arduino Code ⚡
 
 Here is a simple simulation circuit connecting an LDR with an **Arduino Uno** using a voltage divider configuration:
 
@@ -71,4 +71,43 @@ void loop() {
 > [!TIP]
 > Higher ambient light reduces the LDR resistance, causing the voltage reading on **A0** to increase towards $1023$. In pitch black, the value drops closer to $0$.
 
+---
 
+#### Automatic Night Light: Integrating with an LED 💡
+
+Now, let's turn this into a real-world smart application: an **automatic night light** that turns an LED on when it gets dark and turns it off when the room is bright!
+
+![Photoresistor and LED Integrated Circuit](@/assets/images/iot/photoresistor-led-integrate.png)
+*Figure 3: Arduino circuit controlling an LED based on LDR light readings.*
+
+#### Additional Circuit Connections
+- **Digital Pin 5 $\rightarrow$ LED Anode (+):** Connects to the positive leg of the LED to control power via code.
+- **LED Cathode (-) $\rightarrow$ LDR / GND:** Ground connection completes the circuit.
+
+#### Arduino Example Code
+```cpp
+const int LDR_PIN = A0;   // Photoresistor connected to Analog A0
+const int LED_PIN = 5;    // LED connected to Digital Pin 5
+const int THRESHOLD = 500; // Darkness threshold value
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int lightLevel = analogRead(LDR_PIN);
+  Serial.print("Light level: ");
+  Serial.println(lightLevel);
+
+  // If it's dark (reading below threshold), turn on the LED
+  if (lightLevel < THRESHOLD) {
+    digitalWrite(LED_PIN, HIGH);
+  } else {
+    digitalWrite(LED_PIN, LOW);
+  }
+
+  delay(200);
+}
+```
+ 
