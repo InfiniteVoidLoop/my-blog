@@ -110,4 +110,83 @@ void loop() {
   delay(200);
 }
 ```
- 
+
+---
+
+### Ultrasonic Sensor (HC-SR04) 🦇
+
+![Ultrasonic Sensor Module](@/assets/images/iot/ultrasonic-sensor.png)
+*Figure 4: The HC-SR04 Ultrasonic distance sensor and its echo-ranging principle.*
+
+The **HC-SR04** uses high-frequency sound waves (ultrasound at $40\text{ kHz}$) to measure distance without physical contact—just like bats navigate in the dark!
+
+#### How It Works (Echo Principle)
+1. **Trigger (Transmitter "T"):** Sends out an ultrasonic sound burst (8 pulses at $40\text{ kHz}$).
+2. **Reflect:** The sound wave travels forward, hits an obstacle, and bounces back.
+3. **Echo (Receiver "R"):** Detects the reflected wave and outputs a pulse whose duration equals the round-trip travel time.
+
+#### Pinout
+- **VCC:** $5\text{V}$ power supply.
+- **Trig (Trigger):** Input pin to send the signal (set to `HIGH` for $10\mu\text{s}$ to trigger).
+- **Echo:** Output pin that stays `HIGH` for the duration of the sound's travel time.
+- **GND:** Ground ($0\text{V}$).
+
+#### Distance Formula
+Since sound travels through air at approximately $0.034\text{ cm}/\mu\text{s}$ (or $340\text{ m/s}$), and the wave travels to the object and back:
+
+$$\text{Distance (cm)} = \frac{\text{Time} \times 0.034}{2}$$
+
+---
+
+#### Simulation & Arduino Code ⚡
+
+Here is a simple simulation wiring the HC-SR04 with an **Arduino Uno**:
+
+![Ultrasonic Arduino Simulation](@/assets/images/iot/ultrasonic-simulation.png)
+*Figure 5: HC-SR04 ultrasonic sensor simulation connected to Arduino Uno pins 5 (Trig) and 4 (Echo).*
+
+#### Circuit Connections
+- **VCC $\rightarrow$ 5V:** Powers the sensor.
+- **GND $\rightarrow$ GND:** Ground reference.
+- **Trig $\rightarrow$ Pin 5:** Outputs pulses to fire ultrasonic bursts.
+- **Echo $\rightarrow$ Pin 4:** Reads the incoming pulse length from reflected sound.
+
+#### Arduino Example Code
+```cpp
+const int trigger_pin = 5;
+const int echo_pin = 4;
+
+void setup() {
+    Serial.begin(9600);
+    pinMode(trigger_pin, OUTPUT);
+    pinMode(echo_pin, INPUT);
+}
+
+long getDistance() {
+    digitalWrite(trigger_pin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigger_pin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigger_pin, LOW);
+    long duration = pulseIn(echo_pin, HIGH);
+    long distance = duration * 0.034 / 2;
+    return distance;
+}
+
+void loop() {
+    int distance = getDistance(); // unit: cm
+    Serial.print("Distance: ");
+    Serial.print(distance);
+    Serial.println(" cm");
+    delay(200);
+}
+```
+
+> [!NOTE]
+> **Why a $10\mu\text{s}$ trigger pulse?**  
+> - According to the HC-SR04 datasheet, the module's internal controller requires a **`HIGH` pulse of at least $10\mu\text{s}$** on the `Trig` pin to initiate measurement. 
+> - Upon receiving this, it automatically emits an **8-cycle ultrasonic burst at $40\text{ kHz}$**. 
+> - $2\mu\text{s}$ `LOW` pulse ensures a clean, noise-free rising edge.
+
+
+
