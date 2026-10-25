@@ -2,7 +2,7 @@ import { defineAstroPaperConfig } from "./src/types/config";
 
 export default defineAstroPaperConfig({
   site: {
-    url: "https://astro-paper.pages.dev/",
+    url: "https://infinitevoidloop.github.io/my-blog",
     title: "Phuc's Blog",
     description: "A minimal, responsive and SEO-friendly Astro blog theme.",
     author: "Dang Vo Hong Phuc",

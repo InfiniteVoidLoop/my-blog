@@ -20,8 +20,11 @@ import {
 import { transformerFileName } from "./src/utils/transformers/fileName";
 import config from "./astro-paper.config";
 
+const siteUrl = new URL(config.site.url);
+
 export default defineConfig({
-  site: config.site.url,
+  site: siteUrl.origin,
+  base: siteUrl.pathname !== "/" ? siteUrl.pathname : undefined,
   integrations: [
     mdx(),
     sitemap({
