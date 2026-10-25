@@ -313,6 +313,13 @@ void loop() {
 
 A **relay** is an electrically operated switch. It allows a low-power microcontroller (like an Arduino running on $5\text{V}$) to safely turn on and off high-power electrical devices (like $220\text{V}$ light bulbs, fans, or motors).
 
+> [!NOTE]
+> **What does "5VDC" on the relay mean?**  
+> - **Coil Operating Voltage ($5\text{V DC}$):** The relay's internal electromagnet requires a **$5\text{V}$ DC supply** (from `VCC`) to produce enough magnetic pull to close the switch contacts.  
+> - **Does it require $5\text{V}$ to trigger?** The power pin (`VCC`) always needs $5\text{V}$, but the trigger signal on the `IN` pin depends on the module type:
+>   - **Active-HIGH Relay:** Sending a `HIGH` ($5\text{V}$) signal activates the relay.
+>   - **Active-LOW Relay (very common in Arduino kits):** Pulling the pin to `LOW` ($0\text{V}$ / GND) activates the relay, while `HIGH` deactivates it.
+
 #### How It Works (Working Mechanism)
 
 Inside the relay is an electromagnet and a physical mechanical switch:
@@ -320,15 +327,70 @@ Inside the relay is an electromagnet and a physical mechanical switch:
 ![Relay Working Mechanism](@/assets/images/iot/relay-mechanism.png)
 *Figure 11: Internal working mechanism of an electromagnetic relay.*
 
-1. **Control Signal (1):** The microcontroller sends a small $5\text{V}$ signal to the relay.
+1. **Control Signal (1):** The microcontroller sends a small signal to the relay.
 2. **Electromagnet Coil (2):** Current flows through the coil, creating a magnetic field.
 3. **Movable Switch (3):** The magnet pulls the contact arm closed (this makes the characteristic "click" sound!).
 4. **High-Power Load (4):** The high-voltage circuit completes, safely powering the light bulb or appliance.
 
 When the signal turns off, the magnetic pull stops, and an internal spring pulls the switch back open to disconnect power.
 
-> [!NOTE]
-> **Why use a relay? (Electrical Isolation)**  
-> The low-power circuit (Arduino) and the high-power circuit (appliances) are completely separated. Even though the Arduino operates the switch, dangerous high voltage never reaches your microcontroller.
+#### Terminals & Pinout Breakdown
+
+![Relay Terminals](@/assets/images/iot/relay-gate.png)
+*Figure 12: Relay module terminal connections (Control side vs. High-power load side).*
+
+A relay module has two separate sides:
+
+**1. Control Side (Low Voltage - Arduino):**
+- **DC+ (VCC):** Connects to Arduino **5V** to power the electromagnet coil.
+- **DC- (GND):** Connects to Arduino **GND**.
+- **IN (Signal):** Receives the digital trigger command from an Arduino pin.
+
+**2. Load Side (High Voltage - Appliances):**
+- **COM (Common):** The shared terminal connected to one side of the external power supply.
+- **NO (Normally Open):** Disconnected by default (circuit is open / device is OFF). When triggered, **COM connects to NO** $\rightarrow$ device turns ON *(most common use case)*.
+- **NC (Normally Closed):** Connected by default (device is ON). When triggered, **COM disconnects from NC** $\rightarrow$ device turns OFF.
+
+---
+
+#### Circuit Integration: Controlling an AC Light Bulb 💡
+
+Here is how an **Arduino Uno** safely controls an AC light bulb using the relay module:
+
+![Relay with Arduino and AC Light Bulb](@/assets/images/iot/relay-gate-integrate.png)
+*Figure 13: Wiring diagram of an Arduino controlling an AC light bulb via relay.*
+
+##### Circuit Connections
+- **Arduino $\rightarrow$ Relay (Control Side):**
+  - **5V $\rightarrow$ VCC:** Powers the internal coil.
+  - **GND $\rightarrow$ GND:** Common ground reference.
+  - **Digital Pin 7 $\rightarrow$ S (Signal):** Sends switching commands.
+- **Relay $\rightarrow$ Light Bulb (AC Load Side):**
+  - **AC Power Source $\rightarrow$ COM.**
+  - **NO $\rightarrow$ Light Bulb.**
+  - **Light Bulb Return $\rightarrow$ AC Power Neutral.**
+
+##### Arduino Example Code
+```cpp
+const int RELAY_PIN = 7;
+
+void setup() {
+  pinMode(RELAY_PIN, OUTPUT);
+}
+
+void loop() {
+  // Turn ON the light bulb (for Active-HIGH modules)
+  digitalWrite(RELAY_PIN, HIGH);
+  delay(3000); // Wait 3 seconds
+
+  // Turn OFF the light bulb
+  digitalWrite(RELAY_PIN, LOW);
+  delay(3000); // Wait 3 seconds
+}
+```
+
+> [!TIP]
+> Notice how the $5\text{V}$ Arduino circuit and the high-voltage AC circuit are completely isolated—protecting your microcontroller and computer from high currents and surges!
+
 
 
