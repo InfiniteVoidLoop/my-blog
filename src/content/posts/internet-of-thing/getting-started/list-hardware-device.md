@@ -183,10 +183,8 @@ void loop() {
 ```
 
 > [!NOTE]
-> **Why a $10\mu\text{s}$ trigger pulse?**  
-> - According to the HC-SR04 datasheet, the module's internal controller requires a **`HIGH` pulse of at least $10\mu\text{s}$** on the `Trig` pin to initiate measurement. 
-> - Upon receiving this, it automatically emits an **8-cycle ultrasonic burst at $40\text{ kHz}$**. 
-> - $2\mu\text{s}$ `LOW` pulse ensures a clean, noise-free rising edge.
+> **Why $10\mu\text{s}$ on Trig?**  
+> HC-SR04 requires a `HIGH` pulse of at least $10\mu\text{s}$ to fire its 8-cycle ultrasonic burst ($40\text{ kHz}$). The preceding $2\mu\text{s}$ `LOW` ensures a clean signal edge.
 
 
 ### Push Button (Tactile Switch) 🔘
@@ -212,9 +210,13 @@ Here is a push button connected to an **Arduino Uno** using a **pull-down resist
 *Figure 7: Push button circuit with a pull-down resistor connected to Arduino Pin 12.*
 
 #### Circuit Connections
-- **5V $\rightarrow$ Button Pin (B/D):** Supplies 5V to one side of the button.
-- **Button Pin (A/C) $\rightarrow$ Digital Pin 12:** Reads the button state (`HIGH` or `LOW`).
-- **Button Pin (A/C) $\rightarrow$ Resistor ($10\text{k}\Omega$) $\rightarrow$ GND:** Pulls the pin to ground when released.
+- **5V $\rightarrow$ Button Pin (B/D):** Supplies 5V.
+- **Button Pin (A/C) $\rightarrow$ Digital Pin 12:** Reads button state (`HIGH` or `LOW`).
+- **Button Pin (A/C) $\rightarrow$ Resistor ($10\text{k}\Omega$) $\rightarrow$ GND:** Pulls pin to ground when released.
+
+> [!NOTE]
+> **Why a pull-down resistor?**  
+> Without it, an unpressed button leaves the pin "floating" (reading random noise). The $10\text{k}\Omega$ resistor holds the pin steadily at `LOW` ($0\text{V}$) until pressed.
 
 #### Arduino Example Code
 ```cpp
@@ -314,11 +316,10 @@ void loop() {
 A **relay** is an electrically operated switch. It allows a low-power microcontroller (like an Arduino running on $5\text{V}$) to safely turn on and off high-power electrical devices (like $220\text{V}$ light bulbs, fans, or motors).
 
 > [!NOTE]
-> **What does "5VDC" on the relay mean?**  
-> - **Coil Operating Voltage ($5\text{V DC}$):** The relay's internal electromagnet requires a **$5\text{V}$ DC supply** (from `VCC`) to produce enough magnetic pull to close the switch contacts.  
-> - **Does it require $5\text{V}$ to trigger?** The power pin (`VCC`) always needs $5\text{V}$, but the trigger signal on the `IN` pin depends on the module type:
->   - **Active-HIGH Relay:** Sending a `HIGH` ($5\text{V}$) signal activates the relay.
->   - **Active-LOW Relay (very common in Arduino kits):** Pulling the pin to `LOW` ($0\text{V}$ / GND) activates the relay, while `HIGH` deactivates it.
+> **What does "5VDC" mean?**  
+> - **Coil power:** `VCC` requires a constant **$5\text{V}$ DC** to power the internal electromagnet.  
+> - **Triggering:** While `VCC` is always $5\text{V}$, the `IN` pin depends on the module: **Active-HIGH** triggers on $5\text{V}$ (`HIGH`), while **Active-LOW** (common in Arduino kits) triggers on $0\text{V}$ (`LOW`).
+
 
 #### How It Works (Working Mechanism)
 
@@ -390,7 +391,82 @@ void loop() {
 ```
 
 > [!TIP]
-> Notice how the $5\text{V}$ Arduino circuit and the high-voltage AC circuit are completely isolated—protecting your microcontroller and computer from high currents and surges!
+> Complete electrical isolation: the $5\text{V}$ control side and high-voltage AC side never touch, protecting your Arduino from surges.
+
+---
+
+### SPDT Relay (Single Pole Double Throw) 🔀
+
+![SPDT Relay Component](@/assets/images/iot/relay-spdt.png)
+*Figure 14: A standalone SPDT relay component (LU-5-R).*
+
+The most common mechanical relay used in electronics and simulation platforms (such as Wokwi) is the **SPDT (Single Pole Double Throw)** relay:
+- **Single Pole (SP):** One common input switch contact (`COM`).
+- **Double Throw (DT):** Two possible connection paths (`NO` and `NC`). The single switch "throws" between either NO or NC.
+
+#### SPDT Pinout Configuration
+
+Standalone SPDT relays feature **6 pins** directly on the casing:
+
+![SPDT Relay Pinout](@/assets/images/iot/relay-spdt-gate.png)
+*Figure 15: 6-pin SPDT relay layout and connection mapping.*
+
+- **Coil Terminals (Control):**
+  - **Digital Pin (top-middle):** Connects to the Arduino digital output pin to control switching.
+  - **GND (bottom-middle):** Connects to circuit ground.
+- **Switch Contacts (Load):**
+  - **COM (Common - right pins):** Both pins on the right side are connected internally as the common terminal.
+  - **NO (Normally Open - top-left):** Normally disconnected from `COM`. Connects when the coil is energized.
+  - **NC (Normally Closed - bottom-left):** Normally connected to `COM`. Disconnects when the coil is energized.
+
+> [!NOTE]
+> **Digital Pin as direct power source:**  
+> Unlike the 3-wire module above (which has separate `VCC` power and `IN` signal pins), this standalone SPDT relay has **no `VCC` pin**. The Arduino **Digital Pin itself directly powers the coil** with $5\text{V}$ when set to `HIGH`.
+
+---
+
+#### Practical Simulation: Switching a DC Light Bulb with a 9V Battery 💡
+
+Here is a practical simulation wiring an SPDT relay to control a DC light bulb powered by an external **9V battery**:
+
+![SPDT Relay Simulation Circuit](@/assets/images/iot/relay-spdt-gate-integrate.png)
+*Figure 16: Arduino controlling a 9V battery-powered bulb through an SPDT relay.*
+
+##### Connection Table
+
+| Relay Pin | Arduino Uno | 9V Battery | Bulb |
+| :--- | :--- | :--- | :--- |
+| **Digital Pin** | Pin 3 | — | — |
+| **GND** | GND | — | — |
+| **NO** | — | Positive (+) | — |
+| **COM** | — | — | Positive (+) |
+| — | — | Negative (-) | Negative (-) |
+
+##### How It Works
+- Battery $(-)$ connects directly to Bulb $(-)$.
+- Battery $(+)$ connects to **NO**, and Bulb $(+)$ connects to **COM**.
+- Setting Arduino **Pin 3** to `HIGH` bridges **COM $\rightarrow$ NO**, completing the 9V circuit to light the bulb.
+
+
+##### Arduino Example Code
+```cpp
+const int RELAY_PIN = 3;
+
+void setup() {
+  pinMode(RELAY_PIN, OUTPUT);
+}
+
+void loop() {
+  // Turn ON the bulb for 2 seconds
+  digitalWrite(RELAY_PIN, HIGH);
+  delay(2000);
+
+  // Turn OFF the bulb for 2 seconds
+  digitalWrite(RELAY_PIN, LOW);
+  delay(2000);
+}
+```
+
 
 
 
