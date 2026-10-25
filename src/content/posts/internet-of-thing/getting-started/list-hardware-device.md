@@ -304,4 +304,31 @@ void loop() {
 > - `tone(pin, frequency, duration)` sends a sound frequency (in Hz) to the buzzer for a set duration.
 > - `noTone(pin)` shuts off the sound when the melody finishes.
 
+---
+
+### Relay Module 🔌
+
+![5V Relay Module](@/assets/images/iot/relay_intro.png)
+*Figure 10: A standard 5VDC single-channel relay module.*
+
+A **relay** is an electrically operated switch. It allows a low-power microcontroller (like an Arduino running on $5\text{V}$) to safely turn on and off high-power electrical devices (like $220\text{V}$ light bulbs, fans, or motors).
+
+#### How It Works (Working Mechanism)
+
+Inside the relay is an electromagnet and a physical mechanical switch:
+
+![Relay Working Mechanism](@/assets/images/iot/relay-mechanism.png)
+*Figure 11: Internal working mechanism of an electromagnetic relay.*
+
+1. **Control Signal (1):** The microcontroller sends a small $5\text{V}$ signal to the relay.
+2. **Electromagnet Coil (2):** Current flows through the coil, creating a magnetic field.
+3. **Movable Switch (3):** The magnet pulls the contact arm closed (this makes the characteristic "click" sound!).
+4. **High-Power Load (4):** The high-voltage circuit completes, safely powering the light bulb or appliance.
+
+When the signal turns off, the magnetic pull stops, and an internal spring pulls the switch back open to disconnect power.
+
+> [!NOTE]
+> **Why use a relay? (Electrical Isolation)**  
+> The low-power circuit (Arduino) and the high-power circuit (appliances) are completely separated. Even though the Arduino operates the switch, dangerous high voltage never reaches your microcontroller.
+
 
