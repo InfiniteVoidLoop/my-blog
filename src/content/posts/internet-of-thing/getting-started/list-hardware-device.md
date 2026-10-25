@@ -467,6 +467,114 @@ void loop() {
 }
 ```
 
+---
+
+### LCD 16x2 Display 📟
+
+![LCD 16x2 Module](@/assets/images/iot/lcd-16x2.png)
+*Figure 17: A standard 16x2 Liquid Crystal Display (LCD).*
+
+An **LCD (Liquid Crystal Display) 16x2** displays visual text, numbers, and symbols across **2 rows of 16 characters**.
+
+#### 16-Pin Pinout Breakdown
+
+![LCD 16x2 Pinout](@/assets/images/iot/lcd-pinout.png)
+*Figure 18: LCD 16x2 pinout and functional signal lines.*
+
+The 16 pins are divided into four main roles:
+- **Power & Contrast:**
+  - **VSS (GND) & VDD (5V):** Power supply.
+  - **V0 (VEE):** Contrast adjustment pin connected to the wiper (center pin) of a $10\text{k}\Omega$ potentiometer.
+- **Control Pins:**
+  - **RS (Register Select):** `LOW` for command instructions (clear screen, move cursor); `HIGH` for display data.
+  - **RW (Read/Write):** `LOW` for Write (tied to `GND`); `HIGH` for Read.
+  - **E (Enable):** Executes data when receiving a falling edge pulse (`HIGH` $\rightarrow$ `LOW`).
+- **Data Pins (D0 - D7):** Parallel data bus. In **4-bit mode**, only **D4 - D7** are used to save Arduino pins.
+- **Backlight LED:**
+  - **A (Anode):** Backlight $+5\text{V}$ (via $220\Omega$ resistor).
+  - **K (Cathode):** Backlight ground (`GND`).
+
+---
+
+#### 4-Bit Parallel Mode: Wiring & Simulation ⚡
+
+![LCD 16x2 Arduino Wiring](@/assets/images/iot/lcd-simulation.png)
+*Figure 19: Arduino Uno controlling an LCD 16x2 in 4-bit mode with contrast potentiometer.*
+
+##### Connection Table
+
+| LCD Pin | Connected To | Purpose |
+| :--- | :--- | :--- |
+| **VSS, RW, K** | Arduino **GND** | Ground references |
+| **VDD** | Arduino **5V** | Logic power |
+| **V0** | Potentiometer **Center Pin** | Contrast tuning |
+| **RS** | Arduino **Pin 12** | Register select |
+| **E** | Arduino **Pin 11** | Enable clock |
+| **D4, D5, D6, D7**| Arduino **Pins 5, 4, 3, 2** | 4-bit data bus |
+| **A** | Arduino **5V** (via $220\Omega$) | Backlight power |
+
+##### Arduino Example Code (`LiquidCrystal.h`)
+```cpp
+#include <LiquidCrystal.h>
+
+// Initialize library with interface pins: RS, E, D4, D5, D6, D7
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
+void setup() {
+  lcd.begin(16, 2);              // Set up columns and rows
+  lcd.print("Hello, World!");    // Print message on row 0
+}
+
+void loop() {
+  lcd.setCursor(0, 1);           // Move cursor to column 0, row 1
+  lcd.print(millis() / 1000);    // Print seconds elapsed
+}
+```
+
+---
+
+#### Upgrade: LCD with I2C Module (Save Wiring) 🚀
+
+Standard 4-bit parallel wiring takes up at least 6 digital GPIO pins. An **I2C backpack module** soldered onto the back reduces all connections to just **4 wires**!
+
+![LCD I2C Module](@/assets/images/iot/lcd-i2c.png)
+*Figure 20: LCD 16x2 equipped with an I2C adapter backpack.*
+
+##### I2C Pin Connections
+- **GND $\rightarrow$ GND**
+- **VCC $\rightarrow$ 5V**
+- **SDA $\rightarrow$ Pin A4** (Serial Data on Arduino Uno)
+- **SCL $\rightarrow$ Pin A5** (Serial Clock on Arduino Uno)
+
+> [!TIP]
+> - Most LCD I2C backpacks use the address **`0x27`** (or **`0x3F`**).
+> - Contrast can be adjusted using the small blue potentiometer directly on the I2C backpack.
+
+##### Arduino I2C Code (`LiquidCrystal_I2C.h`)
+```cpp
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Set the LCD address (0x27 or 0x3F) for a 16 chars and 2 line display
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void setup() {
+  lcd.init();
+  lcd.backlight();               // Turn on LCD backlight
+  lcd.setCursor(0, 0);
+  lcd.print("Hello World!");
+}
+
+void loop() {
+  // Blinking backlight example
+  lcd.backlight();
+  delay(1000);
+  lcd.noBacklight();
+  delay(1000);
+}
+```
+
+
 
 
 
