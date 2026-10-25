@@ -574,6 +574,74 @@ void loop() {
 }
 ```
 
+---
+
+### Servo Motor (Micro Servo SG90) 🦾
+
+![Micro Servo Motor](@/assets/images/iot/servo-motor.png)
+*Figure 21: Micro Servo SG90 motor.*
+
+A **servo motor** is an actuator designed for precise angular position control. Unlike regular DC motors that spin continuously, a standard micro servo rotates precisely between **$0^\circ$ and $180^\circ$**.
+
+#### 3-Wire Pinout
+
+| Wire Color | Connected To | Function |
+| :--- | :--- | :--- |
+| **Red** | Arduino **5V** | Power supply |
+| **Brown / Black** | Arduino **GND** | Ground reference |
+| **Orange / Yellow** | Arduino **PWM Pin (~9)** | Control signal pulse |
+
+---
+
+#### Simulation & Arduino Code ⚡
+
+Here is a simple simulation wiring a micro servo to an **Arduino Uno**:
+
+![Servo Motor Arduino Simulation](@/assets/images/iot/servo-simulation.png)
+*Figure 22: Micro Servo connected to Arduino Uno Pin ~9 (PWM), 5V, and GND.*
+
+##### Basic Angle Control (`Servo.h`)
+```cpp
+#include <Servo.h>
+
+Servo myservo; // Create servo object
+
+void setup() {
+  myservo.attach(9); // Attach servo to digital pin 9
+}
+
+void loop() {
+  myservo.write(0);    // Rotate to 0 degrees
+  delay(1000);
+  myservo.write(90);   // Rotate to 90 degrees (center)
+  delay(1000);
+  myservo.write(180);  // Rotate to 180 degrees
+  delay(1000);
+}
+```
+
+##### Practical Control: Steering with a Potentiometer
+Using Arduino's `map()` function, you can translate the potentiometer's analog input ($0 - 1023$ on pin `A0`) directly into an angle ($0^\circ - 180^\circ$):
+
+```cpp
+#include <Servo.h>
+
+Servo myservo;
+const int POT_PIN = A0;
+
+void setup() {
+  myservo.attach(9);
+}
+
+void loop() {
+  int val = analogRead(POT_PIN);          // Read potentiometer (0 - 1023)
+  int angle = map(val, 0, 1023, 0, 180);  // Map to servo angle (0 - 180)
+  myservo.write(angle);                   // Command servo to rotate
+  delay(15);                              // Short wait for movement
+}
+```
+
+
 
 
 
