@@ -242,12 +242,88 @@ void loop() {
 
 ---
 
+### Potentiometer (Variable Resistor) 🎛️
+
+![Potentiometer](@/assets/images/iot/potentiometer.png)
+*Figure 8: Rotary potentiometers (variable resistors).*
+
+A **potentiometer** (biến trở) is a 3-terminal variable resistor. Turning its knob adjusts electrical resistance, producing a variable output voltage that functions as an adjustable voltage divider.
+
+#### 3-Terminal Pinout
+
+![Potentiometer Pinout](@/assets/images/iot/potentiometer-pinout.png)
+*Figure 9: Potentiometer 3-pin configuration and internal wiper diagram.*
+
+| Pin | Connected To | Description |
+| :--- | :--- | :--- |
+| **1 (Terminal 1)** | Arduino **GND** | Ground reference (or 5V) |
+| **2 (Wiper / Output)** | Arduino **Analog Pin (A0)** | Variable voltage output ($0\text{V} - 5\text{V}$) |
+| **3 (Terminal 2)** | Arduino **5V** | Power supply (or GND) |
+
+> [!TIP]
+> Pins 1 and 3 are interchangeable. Swapping them simply reverses which direction of knob rotation increases or decreases the reading. The center pin (Pin 2) is always the wiper signal output.
+
+---
+
+#### Simulation & Arduino Code ⚡
+
+Here is a potentiometer connected to an **Arduino Uno** on analog pin **A0**:
+
+![Potentiometer Arduino Simulation](@/assets/images/iot/potentiometer-simulation.png)
+*Figure 10: Potentiometer wired to Arduino Uno analog pin A0.*
+
+##### Circuit Connections
+- **Pin 1 $\rightarrow$ GND**
+- **Pin 2 (Wiper) $\rightarrow$ Analog Pin A0**
+- **Pin 3 $\rightarrow$ 5V**
+
+##### 1. Basic Analog Reading
+The Arduino reads the voltage on pin A0 as a 10-bit integer from **0 ($0\text{V}$)** to **1023 ($5\text{V}$)**:
+
+```cpp
+const int POT_PIN = A0;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(POT_PIN, INPUT);
+}
+
+void loop() {
+  int value = analogRead(POT_PIN); // Reads 0 to 1023
+  Serial.println(value);
+  delay(100);
+}
+```
+
+##### 2. Controlling LED Brightness (Dimming)
+Translate the 10-bit analog reading ($0 - 1023$) to an 8-bit PWM value ($0 - 255$) using `map()`, and drive an LED on Pin ~6 with `analogWrite()`:
+
+```cpp
+const int POT_PIN = A0;
+const int LED_PIN = 6; // PWM pin
+
+void setup() {
+  pinMode(POT_PIN, INPUT);
+  pinMode(LED_PIN, OUTPUT);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int value = analogRead(POT_PIN);               // Range: 0 - 1023
+  int led_value = map(value, 0, 1023, 0, 255);   // Convert to PWM: 0 - 255
+  analogWrite(LED_PIN, led_value);               // Adjust LED brightness
+  delay(100);
+}
+```
+
+---
+
 ## Actuator Devices
 
 ### Buzzer (Active & Passive) 🔊
 
 ![Buzzer Module](@/assets/images/iot/buzzer.png)
-*Figure 8: A standard buzzer module.*
+*Figure 11: A standard buzzer module.*
 
 A **buzzer** is a small component that makes sound—like beeps, clicks, or alarms.
 
@@ -273,7 +349,7 @@ There are two main types of buzzers:
 Here is a simple simulation wiring a buzzer to an **Arduino Uno** to play a melody:
 
 ![Buzzer Arduino Simulation](@/assets/images/iot/buzzer-simulation.png)
-*Figure 9: Buzzer simulation connected to Arduino Uno Pin 5 and GND.*
+*Figure 12: Buzzer simulation connected to Arduino Uno Pin 5 and GND.*
 
 #### Circuit Connections
 - **Positive Pin (+) $\rightarrow$ Digital Pin 5:** Sends frequency pulses to produce sound notes.
@@ -311,7 +387,7 @@ void loop() {
 ### Relay Module 🔌
 
 ![5V Relay Module](@/assets/images/iot/relay_intro.png)
-*Figure 10: A standard 5VDC single-channel relay module.*
+*Figure 13: A standard 5VDC single-channel relay module.*
 
 A **relay** is an electrically operated switch. It allows a low-power microcontroller (like an Arduino running on $5\text{V}$) to safely turn on and off high-power electrical devices (like $220\text{V}$ light bulbs, fans, or motors).
 
@@ -326,7 +402,7 @@ A **relay** is an electrically operated switch. It allows a low-power microcontr
 Inside the relay is an electromagnet and a physical mechanical switch:
 
 ![Relay Working Mechanism](@/assets/images/iot/relay-mechanism.png)
-*Figure 11: Internal working mechanism of an electromagnetic relay.*
+*Figure 14: Internal working mechanism of an electromagnetic relay.*
 
 1. **Control Signal (1):** The microcontroller sends a small signal to the relay.
 2. **Electromagnet Coil (2):** Current flows through the coil, creating a magnetic field.
@@ -338,7 +414,7 @@ When the signal turns off, the magnetic pull stops, and an internal spring pulls
 #### Terminals & Pinout Breakdown
 
 ![Relay Terminals](@/assets/images/iot/relay-gate.png)
-*Figure 12: Relay module terminal connections (Control side vs. High-power load side).*
+*Figure 15: Relay module terminal connections (Control side vs. High-power load side).*
 
 A relay module has two separate sides:
 
@@ -359,7 +435,7 @@ A relay module has two separate sides:
 Here is how an **Arduino Uno** safely controls an AC light bulb using the relay module:
 
 ![Relay with Arduino and AC Light Bulb](@/assets/images/iot/relay-gate-integrate.png)
-*Figure 13: Wiring diagram of an Arduino controlling an AC light bulb via relay.*
+*Figure 16: Wiring diagram of an Arduino controlling an AC light bulb via relay.*
 
 ##### Circuit Connections
 - **Arduino $\rightarrow$ Relay (Control Side):**
@@ -398,7 +474,7 @@ void loop() {
 ### SPDT Relay (Single Pole Double Throw) 🔀
 
 ![SPDT Relay Component](@/assets/images/iot/relay-spdt.png)
-*Figure 14: A standalone SPDT relay component (LU-5-R).*
+*Figure 17: A standalone SPDT relay component (LU-5-R).*
 
 The most common mechanical relay used in electronics and simulation platforms (such as Wokwi) is the **SPDT (Single Pole Double Throw)** relay:
 - **Single Pole (SP):** One common input switch contact (`COM`).
@@ -409,7 +485,7 @@ The most common mechanical relay used in electronics and simulation platforms (s
 Standalone SPDT relays feature **6 pins** directly on the casing:
 
 ![SPDT Relay Pinout](@/assets/images/iot/relay-spdt-gate.png)
-*Figure 15: 6-pin SPDT relay layout and connection mapping.*
+*Figure 18: 6-pin SPDT relay layout and connection mapping.*
 
 - **Coil Terminals (Control):**
   - **Digital Pin (top-middle):** Connects to the Arduino digital output pin to control switching.
@@ -430,7 +506,7 @@ Standalone SPDT relays feature **6 pins** directly on the casing:
 Here is a practical simulation wiring an SPDT relay to control a DC light bulb powered by an external **9V battery**:
 
 ![SPDT Relay Simulation Circuit](@/assets/images/iot/relay-spdt-gate-integrate.png)
-*Figure 16: Arduino controlling a 9V battery-powered bulb through an SPDT relay.*
+*Figure 19: Arduino controlling a 9V battery-powered bulb through an SPDT relay.*
 
 ##### Connection Table
 
@@ -472,14 +548,14 @@ void loop() {
 ### LCD 16x2 Display 📟
 
 ![LCD 16x2 Module](@/assets/images/iot/lcd-16x2.png)
-*Figure 17: A standard 16x2 Liquid Crystal Display (LCD).*
+*Figure 20: A standard 16x2 Liquid Crystal Display (LCD).*
 
 An **LCD (Liquid Crystal Display) 16x2** displays visual text, numbers, and symbols across **2 rows of 16 characters**.
 
 #### 16-Pin Pinout Breakdown
 
 ![LCD 16x2 Pinout](@/assets/images/iot/lcd-pinout.png)
-*Figure 18: LCD 16x2 pinout and functional signal lines.*
+*Figure 21: LCD 16x2 pinout and functional signal lines.*
 
 The 16 pins are divided into four main roles:
 - **Power & Contrast:**
@@ -499,7 +575,7 @@ The 16 pins are divided into four main roles:
 #### 4-Bit Parallel Mode: Wiring & Simulation ⚡
 
 ![LCD 16x2 Arduino Wiring](@/assets/images/iot/lcd-simulation.png)
-*Figure 19: Arduino Uno controlling an LCD 16x2 in 4-bit mode with contrast potentiometer.*
+*Figure 22: Arduino Uno controlling an LCD 16x2 in 4-bit mode with contrast potentiometer.*
 
 ##### Connection Table
 
@@ -538,7 +614,7 @@ void loop() {
 Standard 4-bit parallel wiring takes up at least 6 digital GPIO pins. An **I2C backpack module** soldered onto the back reduces all connections to just **4 wires**!
 
 ![LCD I2C Module](@/assets/images/iot/lcd-i2c.png)
-*Figure 20: LCD 16x2 equipped with an I2C adapter backpack.*
+*Figure 23: LCD 16x2 equipped with an I2C adapter backpack.*
 
 ##### I2C Pin Connections
 - **GND $\rightarrow$ GND**
@@ -579,7 +655,7 @@ void loop() {
 ### Servo Motor (Micro Servo SG90) 🦾
 
 ![Micro Servo Motor](@/assets/images/iot/servo-motor.png)
-*Figure 21: Micro Servo SG90 motor.*
+*Figure 24: Micro Servo SG90 motor.*
 
 A **servo motor** is an actuator designed for precise angular position control. Unlike regular DC motors that spin continuously, a standard micro servo rotates precisely between **$0^\circ$ and $180^\circ$**.
 
@@ -598,7 +674,7 @@ A **servo motor** is an actuator designed for precise angular position control. 
 Here is a simple simulation wiring a micro servo to an **Arduino Uno**:
 
 ![Servo Motor Arduino Simulation](@/assets/images/iot/servo-simulation.png)
-*Figure 22: Micro Servo connected to Arduino Uno Pin ~9 (PWM), 5V, and GND.*
+*Figure 25: Micro Servo connected to Arduino Uno Pin ~9 (PWM), 5V, and GND.*
 
 ##### Basic Angle Control (`Servo.h`)
 ```cpp
