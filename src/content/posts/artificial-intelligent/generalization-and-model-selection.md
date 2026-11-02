@@ -83,12 +83,12 @@ How complex should your model be? The answer depends on finding the sweet spot b
 
 ### Karl Popper's Principle of Falsifiability
 
-The philosopher Karl Popper famously argued that a scientific theory must be **falsifiable** — if a hypothesis can adapt to explain every imaginable outcome (even complete contradictions), it is fundamentally unscientific.
-
-Applying this to Machine Learning:
-
-* If your model has enough free capacity to fit entirely random labels with zero training error, achieving $0\%$ error on real data tells you nothing.
-* A credible model is constrained enough that it **fails to fit nonsense or random noise**, yet **succeeds on real-world patterns**.
+> [!NOTE]
+> The philosopher Karl Popper famously argued that a scientific theory must be **falsifiable** — if a hypothesis can adapt to explain every imaginable outcome (even complete contradictions), it is fundamentally unscientific.
+>
+> **Applying this to Machine Learning:**
+> * If your model has enough free capacity to fit entirely random labels with zero training error, achieving $0\%$ error on real data tells you nothing.
+> * A credible model is constrained enough that it **fails to fit nonsense or random noise**, yet **succeeds on real-world patterns**.
 
 ### What Truly Defines Model Complexity?
 
