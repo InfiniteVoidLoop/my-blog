@@ -326,4 +326,15 @@ class LossPlotter:
 ![Training and Validation Loss Curve](@/assets/images/artificial-intelligent/linear-regression-loss-curve.png)
 *Figure 3: Training MSE (blue) and Validation MSE (red dashed) converging smoothly across epochs without diverging.*
 
+---
+
+## 6. Kaggle Submission & Verification
+
+After training the model on the preprocessed dataset, we generate predictions for the test set `test.csv` by exponentiating the model output: $\hat{y} = \exp(\hat{y}_{\text{log}})$.
+
+Submitting our predictions to the [House Prices: Advanced Regression Techniques](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques) leaderboard confirms the performance of our from-scratch model:
+
+![Kaggle Leaderboard Submission Result](@/assets/images/artificial-intelligent/linear_kaggle.png)
+*Figure 4: Our final submission score on Kaggle, verifying the effectiveness of clean data preprocessing combined with mini-batch SGD.*
+
 By decoupling data processing, parameter optimization, and visual evaluation, we obtain a transparent and robust pipeline that is mathematically faithful to the core principles of deep learning.
