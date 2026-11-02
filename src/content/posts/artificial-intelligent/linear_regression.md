@@ -98,12 +98,29 @@ Raw data has missing values, text columns, and large numbers that need cleaning 
 * **Solution**: Use **One-Hot Encoding** to turn text categories into binary $0/1$ columns. Missing categories become their own dummy column.
 
 ### 3. Skewed Price Distribution
-* **Problem**: House prices are unevenly distributed (a few luxury houses are huge outliers). Also, a \$20k error matters much more on a \$100k house than on a \$1M house.
+* **Problem**: House prices are unevenly distributed (a few luxury houses are huge outliers). Also, predicting \$120k for a \$100k house and \$1,020k for a \$1,000,000 house both have the same absolute error (\$20k), but very different relative errors (20% vs 2%). Standard MSE penalizes them equally.
 * **Solution**: Take the natural log of prices:
-  $$
-  y_{\text{log}} = \log(\text{SalePrice})
-  $$
-  Training on $y_{\text{log}}$ measures percentage errors and matches Kaggle's evaluation metric. We convert back at the end using $\exp(\hat{y}_{\text{log}})$.
+
+$$
+y_{\text{log}} = \log(\text{SalePrice})
+$$
+
+#### Why does this measure relative error? (Math intuition)
+From basic calculus and logarithm properties:
+
+$$
+\log(\hat{y}) - \log(y) = \log\left(\frac{\hat{y}}{y}\right) = \log\left(1 + \frac{\hat{y} - y}{y}\right) \approx \frac{\hat{y} - y}{y} = \text{Relative Error}
+$$
+
+*(using the Taylor approximation $\log(1 + \delta) \approx \delta$ for small errors $\delta$).*
+
+Thus, minimizing MSE in log-space:
+
+$$
+\frac{1}{n}\sum \left(\log(\hat{y}^{(i)}) - \log(y^{(i)})\right)^2
+$$
+
+directly minimizes the **relative percentage error** (Kaggle's official RMSLE metric), treating a 10% error on a cheap house with the exact same weight as a 10% error on a luxury mansion. At test time, we convert predictions back using $\exp(\hat{y}_{\text{log}})$.
 
 ![Log Transformation: Raw Skewed Prices vs. Bell-shaped Log Prices](@/assets/images/artificial-intelligent/log-transform-comparison.png)
 *Figure 2: Raw sale prices are heavily skewed to the right (left). Applying $\log(\text{SalePrice})$ produces a symmetric bell-shaped normal distribution (right), stabilizing gradient updates.*
