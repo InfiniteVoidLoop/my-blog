@@ -323,6 +323,53 @@ class LossPlotter:
         plt.close()
 ```
 
+### Main Pipeline Execution
+
+```python
+if __name__ == "__main__":
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    train_path = os.path.join(
+        current_dir, "house-prices-advanced-regression-techniques", "train.csv"
+    )
+    test_path = os.path.join(
+        current_dir, "house-prices-advanced-regression-techniques", "test.csv"
+    )
+
+    # 1. Preprocess Data
+    data_module = DataModule(
+        train_path=train_path,
+        test_path=test_path,
+        batch_size=64,
+        train_ratio=0.8,
+    )
+    data_module.preprocess()
+
+    # 2. Initialize Model & Trainer
+    num_features = data_module.X_train.shape[1]
+    model = LinearRegression(
+        num_features=num_features,
+        learning_rate=0.03,
+        sigma=0.01,
+    )
+    trainer = Trainer(num_epochs=100)
+
+    # 3. Fit Model
+    trainer.fit(model, data_module)
+
+    # 4. Plot Convergence
+    plotter = LossPlotter(trainer.train_loss_history, trainer.val_loss_history)
+    plotter.plot(save_path=os.path.join(current_dir, "loss_plot.png"))
+
+    # 5. Predict on Test Set & Save Submission
+    with torch.no_grad():
+        y_test_pred = model.forward(data_module.X_test)
+        real_house_prices = torch.exp(y_test_pred).detach().reshape(-1).numpy()
+        submission = pd.DataFrame(
+            {"Id": data_module.X_test_id, "SalePrice": real_house_prices}
+        )
+        submission.to_csv(os.path.join(current_dir, "submission.csv"), index=False)
+```
+
 ![Training and Validation Loss Curve](@/assets/images/artificial-intelligent/linear-regression-loss-curve.png)
 *Figure 3: Training MSE (blue) and Validation MSE (red dashed) converging smoothly across epochs without diverging.*
 
