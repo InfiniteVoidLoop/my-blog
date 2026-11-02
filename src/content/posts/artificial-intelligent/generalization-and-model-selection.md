@@ -138,12 +138,6 @@ To select the best model fairly, you must divide your data into three separate s
 3. **Test Set (The Final Exam in a Sealed Vault):**
    Kept completely untouched while you experiment. It is evaluated **only once** at the very end to give an honest, unbiased score of how the model will perform in the real world.
 
-### The Human Overfitting Trap
-
-Why can't you tune your model using the test set?
-
-Even though your code doesn't train weights directly on the test set, **you** become the optimizer if you keep checking test scores and tweaking hyperparameters to make them higher. Through repeated adjustments, you leak test set details into your design choices, leading to a model that scores well on the test set but fails in production.
-
 ---
 
 ## 7. K-Fold Cross-Validation: Safe Validation for Small Data
@@ -161,25 +155,14 @@ When you have a small dataset, setting aside 20% to 30% for validation can feel 
 3. **Average:** Calculate the average validation score across all $K$ rounds:
 
 $$
-\text{CV Score} = \frac{1}{K} \sum_{k=1}^{K} \text{Score}_k
+\text{CV Score (Cross-Validation Score)} = \frac{1}{K} \sum_{k=1}^{K} \text{Score}_k
 $$
-
-### The Standard 4-Step Workflow
-
-K-Fold is an evaluation tool, not a way to deploy $K$ different models. The standard workflow is:
-
-```
-Step 1: Run K-Fold CV to find the best settings (learning rate, weight decay, etc.).
-Step 2: Discard the temporary fold models.
-Step 3: Retrain one final model on 100% of the training data using the chosen settings.
-Step 4: Evaluate once on the held-out Test Set before shipping to production.
-```
 
 ---
 
-## 8. Key Takeaways
+## 8. Conclusion
 
 * **Generalization is the true goal:** Low training error with high validation error means the model just memorized noise.
 * **Control complexity:** Balance parameters, weight sizes (via weight decay), and network depth against your dataset size.
 * **Keep data separate:** Train updates weights; Validation tunes hyperparameters; Test provides the final unbiased verdict.
-* **Use K-Fold on small datasets:** It gives reliable validation without permanently sacrificing training data.
+* **K-Fold on small datasets:** It gives reliable validation without permanently sacrificing training data.
