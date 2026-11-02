@@ -155,8 +155,60 @@ When you have a small dataset, setting aside 20% to 30% for validation can feel 
 3. **Average:** Calculate the average validation score across all $K$ rounds:
 
 $$
-\text{CV Score (Cross-Validation Score)} = \frac{1}{K} \sum_{k=1}^{K} \text{Score}_k
+\text{CV Score} = \frac{1}{K} \sum_{k=1}^{K} \text{Score}_k
 $$
+
+### Code Implementation
+
+In PyTorch, slicing and rotating the $K$ folds can be implemented in just a few lines:
+
+```python
+def get_k_fold_data(k, i, X, y):
+    fold_size = X.shape[0] // k
+    start, end = i * fold_size, (i + 1) * fold_size
+
+    X_val, y_val = X[start:end], y[start:end]
+    X_train = torch.cat([X[:start], X[end:]], dim=0)
+    y_train = torch.cat([y[:start], y[end:]], dim=0)
+
+    return X_train, y_train, X_val, y_val
+```
+
+Then, run the loop across all $K$ folds:
+
+```python
+models = []
+all_train_losses, all_val_losses = [], []
+
+for i in range(k):
+    X_tr, y_tr, X_va, y_va = get_k_fold_data(k, i, X_train, y_train)
+
+    # Must create a fresh model for every fold to avoid data leakage
+    model = LinearRegression(num_features, lr=0.05)
+    train_loss, val_loss = train(model, X_tr, y_tr, X_va, y_va, epochs=150)
+
+    models.append(model)
+    all_train_losses.append(train_loss)
+    all_val_losses.append(val_loss)
+
+avg_train_loss = sum(all_train_losses) / k
+avg_val_loss = sum(all_val_losses) / k
+```
+
+### What to Do After K-Fold? (Two Strategies)
+
+> [!NOTE]
+> **Strategy 1 — Retrain on 100% Data:**
+> Use K-Fold strictly as a hyperparameter tuning tool. Once you find the best learning rate and epochs, discard the fold models and train **one final model on all 100% of the training data**.
+>
+> **Strategy 2 — Fold Ensembling (Bagging):**
+> Keep all $K$ models. For test predictions, pass `X_test` through each of the $K$ models and **average their outputs**:
+> ```python
+> with torch.no_grad():
+>     preds = [model(X_test) for model in models]
+>     y_test_pred = torch.stack(preds).mean(dim=0)
+> ```
+> Averaging multiple models cancels out individual model variance and often improves final leaderboard scores.
 
 ---
 
