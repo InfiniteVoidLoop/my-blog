@@ -10,12 +10,12 @@ tags:
   - machine-learning
   - linear-regression
   - pytorch
-description: "A clean, concise guide to building Linear Regression from scratch using PyTorch — understanding Forward Pass, MSE Loss, Mini-batch SGD, and Modular OOP Design."
+description: "A comprehensive guide to Linear Regression from scratch with PyTorch — data handling (Z-score normalization, One-Hot Encoding, Log Transformation), Forward Pass, MSE Loss, Mini-batch SGD, and Modular OOP Design."
 series: "Artificial Intelligent"
 seriesOrder: 3
 ---
 
-**Linear Regression** is the most fundamental building block in Machine Learning. In this post, we build a clean and extensible Linear Regression pipeline from scratch using **PyTorch**, without relying on high-level wrappers like `torch.nn.Linear` or external training frameworks.
+**Linear Regression** is the foundational starting point in Machine Learning. In this guide, we break down the entire pipeline from scratch using **PyTorch**—from thorough data preprocessing (normalization, encoding, handling missing values) to forward computation, loss evaluation, and mini-batch stochastic gradient descent.
 
 ## Table of contents
 
@@ -23,61 +23,170 @@ seriesOrder: 3
 
 ## 1. Mathematical Formulation
 
-Linear Regression assumes the relationship between input features $\mathbf{x} \in \mathbb{R}^d$ and the target label $y \in \mathbb{R}$ is linear:
+Linear Regression models the relationship between an input feature vector $\mathbf{x} \in \mathbb{R}^d$ and a continuous scalar output $y \in \mathbb{R}$ via an affine transformation:
 
-$$\hat{y} = \mathbf{x} \mathbf{w} + b$$
+$$
+\hat{y} = \mathbf{x} \mathbf{w} + b
+$$
 
 Where:
-* $\mathbf{w} \in \mathbb{R}^{d \times 1}$ is the **weight vector**.
-* $b \in \mathbb{R}$ is the **bias scalar**.
-* $\hat{y}$ is the model's prediction.
+* $\mathbf{w} \in \mathbb{R}^{d \times 1}$ is the **weight parameter vector**.
+* $b \in \mathbb{R}$ is the **bias parameter scalar**.
+* $\hat{y}$ is the predicted scalar.
 
-For a mini-batch of $n$ samples, represented as a design matrix $\mathbf{X} \in \mathbb{R}^{n \times d}$:
+When extended to a mini-batch of $n$ instances, represented as a design matrix $\mathbf{X} \in \mathbb{R}^{n \times d}$:
 
-$$\hat{\mathbf{y}} = \mathbf{X}\mathbf{w} + b$$
-
----
-
-## 2. Loss Function (Mean Squared Error)
-
-To measure how well the parameters fit the training data, we minimize the **Mean Squared Error (MSE)** loss:
-
-$$\mathcal{L}(\mathbf{w}, b) = \frac{1}{2n} \sum_{i=1}^{n} (\hat{y}^{(i)} - y^{(i)})^2$$
-
-The factor $\frac{1}{2}$ is introduced so that when taking the derivative, the power of $2$ cancels out cleanly:
-
-$$\frac{\partial \mathcal{L}}{\partial \hat{y}^{(i)}} = \hat{y}^{(i)} - y^{(i)}$$
+$$
+\hat{\mathbf{y}} = \mathbf{X}\mathbf{w} + b
+$$
 
 ---
 
-## 3. Optimization: Stochastic Gradient Descent (SGD)
+## 2. Loss Function & Optimization
 
-We update parameters iteratively in the opposite direction of the gradient:
+### Mean Squared Error (MSE)
+We quantify model error by measuring the squared Euclidean distance between predictions $\hat{\mathbf{y}}$ and ground-truth targets $\mathbf{y}$:
 
-$$\mathbf{w} \leftarrow \mathbf{w} - \eta \cdot \frac{\partial \mathcal{L}}{\partial \mathbf{w}}$$
-$$b \leftarrow b - \eta \cdot \frac{\partial \mathcal{L}}{\partial b}$$
+$$
+\mathcal{L}(\mathbf{w}, b) = \frac{1}{2n} \sum_{i=1}^{n} (\hat{y}^{(i)} - y^{(i)})^2
+$$
 
-Where $\eta > 0$ denotes the **learning rate**.
+The factor $\frac{1}{2}$ simplifies the analytical gradient:
+
+$$
+\frac{\partial \mathcal{L}}{\partial \hat{y}^{(i)}} = \hat{y}^{(i)} - y^{(i)}
+$$
+
+### Stochastic Gradient Descent (SGD)
+Parameters update iteratively against the gradient vector with learning rate $\eta > 0$:
+
+$$
+\begin{aligned}
+\mathbf{w} &\leftarrow \mathbf{w} - \eta \cdot \frac{\partial \mathcal{L}}{\partial \mathbf{w}} \\[0.8em]
+b &\leftarrow b - \eta \cdot \frac{\partial \mathcal{L}}{\partial b}
+\end{aligned}
+$$
+
+---
+
+## 3. Data Preprocessing
+
+Before feeding raw tabular data into our model, we apply three standard preprocessing steps:
+
+### 1. Standardization (Z-score Normalization)
+Features often exist on vastly different scales. To ensure balanced gradient descent updates across all dimensions, we rescale numerical features to zero mean ($\mu = 0$) and unit variance ($\sigma^2 = 1$):
+
+$$
+x' = \frac{x - \mu}{\sigma}
+$$
+
+Any missing values (`NaN`) in numeric columns are then replaced with $0$, which naturally represents the mean value after standardization.
+
+### 2. One-Hot Encoding
+Discrete categorical features (e.g., neighborhood, roof style) cannot be used directly in matrix operations. We convert them into binary indicator columns (one-hot vectors), while treating missing entries (`NaN`) as a distinct valid category.
+
+### 3. Log-Transforming Targets
+When predicting continuous quantities with wide dynamic ranges (such as housing prices), targets are often skewed. Transforming labels with the natural logarithm:
+
+$$
+y_{\text{log}} = \log(y)
+$$
+
+stabilizes variance and converts absolute errors into relative percentage errors, making training substantially more stable.
 
 ---
 
 ## 4. Implementation from Scratch
 
-We structure the pipeline using four modular components:
-1. `LinearRegression`: Handles parameter initialization, forward pass, and loss computation.
-2. `Stochastic_Gradient_Descent`: Manages parameter updates and zeroing gradients.
-3. `DataModule`: Normalization, one-hot encoding, and mini-batch generation.
-4. `Trainer` & `LossPlotter`: Training loop orchestration and loss visualization.
+```python
+import pandas as pd
+import torch
+import random
+
+class DataModule:
+    def __init__(self, train_path: str, test_path: str, batch_size: int = 64, train_ratio: float = 0.8):
+        self.train_path = train_path
+        self.test_path = test_path
+        self.batch_size = batch_size
+        self.train_ratio = train_ratio
+
+        self.X_train = None
+        self.y_train = None
+        self.X_val = None
+        self.y_val = None
+        self.X_test = None
+        self.X_test_id = None
+
+    def preprocess(self):
+        raw_train_data = pd.read_csv(self.train_path)
+        raw_test_data = pd.read_csv(self.test_path)
+        self.X_test_id = raw_test_data["Id"]
+
+        # 1. Feature Alignment
+        features = pd.concat(
+            [
+                raw_train_data.drop(columns=["Id", "SalePrice"]),
+                raw_test_data.drop(columns=["Id"]),
+            ],
+            ignore_index=True,
+        )
+
+        # 2. Standardization & Imputation
+        numerical_cols = features.select_dtypes(include=["number"]).columns
+        features[numerical_cols] = features[numerical_cols].apply(
+            lambda x: (x - x.mean()) / x.std()
+        )
+        features[numerical_cols] = features[numerical_cols].fillna(0)
+
+        # 3. One-Hot Encoding
+        features = pd.get_dummies(features, dummy_na=True, dtype=float)
+
+        # 4. Partition and Convert to Tensors
+        num_train_data = raw_train_data.shape[0]
+        num_test_data = raw_test_data.shape[0]
+        train_size = int(num_train_data * self.train_ratio)
+
+        all_X_train = torch.tensor(
+            features[:num_train_data].to_numpy(), dtype=torch.float32
+        )
+        all_y_train = torch.log(
+            torch.tensor(raw_train_data["SalePrice"].to_numpy(), dtype=torch.float32)
+        ).reshape(-1, 1)
+
+        self.X_train = all_X_train[:train_size]
+        self.y_train = all_y_train[:train_size]
+        self.X_val = all_X_train[train_size:]
+        self.y_val = all_y_train[train_size:]
+
+        self.X_test = torch.tensor(
+            features[num_train_data:].to_numpy(), dtype=torch.float32
+        )
+
+    def get_batch(self, train: bool = True):
+        X = self.X_train if train else self.X_val
+        y = self.y_train if train else self.y_val
+        assert X is not None and y is not None, "DataModule must be preprocessed first."
+
+        data_size = X.shape[0]
+        indices = list(range(data_size))
+        if train:
+            random.shuffle(indices)
+
+        for i in range(0, data_size, self.batch_size):
+            batch_idx = indices[i : min(data_size, i + self.batch_size)]
+            yield (X[batch_idx], y[batch_idx])
+```
+
+---
+
+## 4. Model Architecture & Custom Optimizer
 
 ### Model Class
 
 ```python
-import torch
-
 class LinearRegression:
     def __init__(self, num_features: int, learning_rate: float, sigma: float = 0.01):
         self.learning_rate = learning_rate
-        # Initialize weights with Gaussian noise and bias with zero
         self.W = torch.normal(0, sigma, (num_features, 1), requires_grad=True)
         self.b = torch.zeros(1, requires_grad=True)
 
@@ -89,13 +198,11 @@ class LinearRegression:
 
     def training_step(self, batch):
         X, y = batch[0], batch[1]
-        y_hat = self.forward(X)
-        return self.loss(y_hat, y)
+        return self.loss(self.forward(X), y)
 
     def validation_step(self, batch):
         X, y = batch[0], batch[1]
-        y_hat = self.forward(X)
-        return self.loss(y_hat, y)
+        return self.loss(self.forward(X), y)
 
     def configure_optimizer(self):
         return Stochastic_Gradient_Descent([self.W, self.b], self.learning_rate)
@@ -121,7 +228,11 @@ class Stochastic_Gradient_Descent:
                 param.grad.zero_()
 ```
 
-### Training & Validation Loop
+---
+
+## 5. Training Loop & Convergence Analysis
+
+The training coordinator manages the forward-backward cycle across mini-batches while detaching scalar metrics via `.item()` to prevent graph accumulation:
 
 ```python
 class Trainer:
@@ -130,7 +241,7 @@ class Trainer:
         self.train_loss_history = []
         self.val_loss_history = []
 
-    def fit(self, model, data_module):
+    def fit(self, model: LinearRegression, data_module: DataModule):
         optim = model.configure_optimizer()
         for epoch in range(self.num_epochs):
             total_train_loss = 0.0
@@ -140,7 +251,6 @@ class Trainer:
                 total_train_loss += train_loss.item()
                 num_train_batch += 1
 
-                # Gradient descent step
                 optim.grad_zero()
                 train_loss.backward()
                 optim.step()
@@ -157,11 +267,7 @@ class Trainer:
             self.val_loss_history.append(total_val_loss / max(num_val_batch, 1))
 ```
 
----
-
-## 5. Visualizing Learning Dynamics
-
-Using a dedicated `LossPlotter`, we monitor convergence over epochs:
+### Visualizing Loss Progression
 
 ```python
 import matplotlib.pyplot as plt
@@ -186,4 +292,4 @@ class LossPlotter:
         plt.close()
 ```
 
-Both training and validation loss steadily decrease and plateau without divergence, proving that the model generalizes well without overfitting.
+By decoupling data processing, parameter optimization, and visual evaluation, we obtain a transparent and robust pipeline that is mathematically faithful to the core principles of deep learning.
