@@ -55,7 +55,7 @@ $$
 
 ---
 
-## 3. Loss & Gradient Descent
+## 3. Loss & Optimization
 
 ### MSE Loss
 We measure error using Mean Squared Error:
@@ -64,15 +64,20 @@ $$
 \mathcal{L}(\mathbf{w}, b) = \frac{1}{2n} \sum_{i=1}^{n} (\hat{y}^{(i)} - y^{(i)})^2
 $$
 
-### Gradient Descent (SGD)
-We update weights in the opposite direction of the gradient with learning rate $\eta$:
+### Mini-Batch Stochastic Gradient Descent
+Instead of computing the gradient over the whole dataset (too slow) or a single sample (too noisy), we sample a small random **mini-batch** $\mathcal{B}_t$ of size $|\mathcal{B}|$ and update parameters using its average gradient:
 
 $$
 \begin{aligned}
-\mathbf{w} &\leftarrow \mathbf{w} - \eta \cdot \frac{\partial \mathcal{L}}{\partial \mathbf{w}} \\[0.8em]
-b &\leftarrow b - \eta \cdot \frac{\partial \mathcal{L}}{\partial b}
+\mathbf{w} &\leftarrow \mathbf{w} - \frac{\eta}{|\mathcal{B}|} \sum_{i \in \mathcal{B}_t} \partial_{\mathbf{w}} l^{(i)}(\mathbf{w}, b) = \mathbf{w} - \frac{\eta}{|\mathcal{B}|} \sum_{i \in \mathcal{B}_t} \mathbf{x}^{(i)} \left( \mathbf{w}^\top \mathbf{x}^{(i)} + b - y^{(i)} \right) \\[0.9em]
+b &\leftarrow b - \frac{\eta}{|\mathcal{B}|} \sum_{i \in \mathcal{B}_t} \partial_b l^{(i)}(\mathbf{w}, b) = b - \frac{\eta}{|\mathcal{B}|} \sum_{i \in \mathcal{B}_t} \left( \mathbf{w}^\top \mathbf{x}^{(i)} + b - y^{(i)} \right)
 \end{aligned}
 $$
+
+Where:
+* $|\mathcal{B}|$ is the **batch size** (e.g., 64).
+* $\eta$ is the **learning rate**.
+* $\left( \mathbf{w}^\top \mathbf{x}^{(i)} + b - y^{(i)} \right)$ is the prediction error $(\hat{y}^{(i)} - y^{(i)})$.
 
 ---
 
