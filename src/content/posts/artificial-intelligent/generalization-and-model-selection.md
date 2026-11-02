@@ -67,7 +67,7 @@ Deep neural networks have millions of parameters. With that much capacity, a net
 
 ---
 
-## 3. Model Complexity & The Goldilocks Zone
+## 3. Model Complexity
 
 Finding the right model is all about balance — you want a model that is neither too simple nor too complex.
 
@@ -195,9 +195,9 @@ avg_train_loss = sum(all_train_losses) / k
 avg_val_loss = sum(all_val_losses) / k
 ```
 
-### Predicting with K-Fold: Ensembling All $K$ Models
+### Predicting with K-Fold
 
-Instead of throwing away the $K$ models trained during cross-validation, keep all of them. For final predictions on the test set, pass `X_test` through each of the $K$ models and average their outputs:
+Using K models, for final predictions on the test set, pass `X_test` through each of the $K$ models and average their outputs:
 
 ```python
 with torch.no_grad():
@@ -207,7 +207,7 @@ with torch.no_grad():
 ```
 
 > [!TIP]
-> Averaging predictions across all $K$ models (bagging) cancels out the individual errors of each fold model, resulting in smoother and more reliable test predictions.
+> Averaging predictions across all $K$ models cancels out the individual errors of each fold model, resulting in smoother and more reliable test predictions.
 
 ---
 
