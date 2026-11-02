@@ -40,15 +40,18 @@ $$
 $$
 
 Where:
-* $\mathbf{w}$ is the **weights vector**.
-* $b$ is the **bias scalar**.
-* $\hat{y}$ is the model prediction.
+* $\mathbf{w}$ is the **weights vector** (slope per feature).
+* $b$ is the **bias scalar** (baseline intercept).
+* $\hat{y}$ is the predicted price.
 
 For a batch of $n$ houses $\mathbf{X} \in \mathbb{R}^{n \times d}$:
 
 $$
 \hat{\mathbf{y}} = \mathbf{X}\mathbf{w} + b
 $$
+
+![Linear Regression Concept: Fitting a line to house data](@/assets/images/artificial-intelligent/linear-regression-concept.png)
+*Figure 1: Fitting a linear model to house area vs. sale price. Green dashed lines show the residual errors $(\hat{y} - y)$ that the loss function minimizes.*
 
 ---
 
@@ -96,6 +99,9 @@ Raw data has missing values, text columns, and large numbers that need cleaning 
   y_{\text{log}} = \log(\text{SalePrice})
   $$
   Training on $y_{\text{log}}$ measures percentage errors and matches Kaggle's evaluation metric. We convert back at the end using $\exp(\hat{y}_{\text{log}})$.
+
+![Log Transformation: Raw Skewed Prices vs. Bell-shaped Log Prices](@/assets/images/artificial-intelligent/log-transform-comparison.png)
+*Figure 2: Raw sale prices are heavily skewed to the right (left). Applying $\log(\text{SalePrice})$ produces a symmetric bell-shaped normal distribution (right), stabilizing gradient updates.*
 
 ---
 
@@ -294,5 +300,8 @@ class LossPlotter:
             plt.savefig(save_path)
         plt.close()
 ```
+
+![Training and Validation Loss Curve](@/assets/images/artificial-intelligent/linear-regression-loss-curve.png)
+*Figure 3: Training MSE (blue) and Validation MSE (red dashed) converging smoothly across epochs without diverging.*
 
 By decoupling data processing, parameter optimization, and visual evaluation, we obtain a transparent and robust pipeline that is mathematically faithful to the core principles of deep learning.
