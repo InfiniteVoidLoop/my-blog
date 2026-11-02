@@ -195,20 +195,19 @@ avg_train_loss = sum(all_train_losses) / k
 avg_val_loss = sum(all_val_losses) / k
 ```
 
-### What to Do After K-Fold? (Two Strategies)
+### Predicting with K-Fold: Ensembling All $K$ Models
 
-> [!NOTE]
-> **Strategy 1 — Retrain on 100% Data:**
-> Use K-Fold strictly as a hyperparameter tuning tool. Once you find the best learning rate and epochs, discard the fold models and train **one final model on all 100% of the training data**.
->
-> **Strategy 2 — Fold Ensembling (Bagging):**
-> Keep all $K$ models. For test predictions, pass `X_test` through each of the $K$ models and **average their outputs**:
-> ```python
-> with torch.no_grad():
->     preds = [model(X_test) for model in models]
->     y_test_pred = torch.stack(preds).mean(dim=0)
-> ```
-> Averaging multiple models cancels out individual model variance and often improves final leaderboard scores.
+Instead of throwing away the $K$ models trained during cross-validation, keep all of them. For final predictions on the test set, pass `X_test` through each of the $K$ models and average their outputs:
+
+```python
+with torch.no_grad():
+    preds = [model(X_test) for model in models]
+    y_test_pred = torch.stack(preds).mean(dim=0)
+    real_prices = torch.exp(y_test_pred).numpy()
+```
+
+> [!TIP]
+> Averaging predictions across all $K$ models (bagging) cancels out the individual errors of each fold model, resulting in smoother and more reliable test predictions.
 
 ---
 
