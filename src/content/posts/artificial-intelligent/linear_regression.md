@@ -15,26 +15,36 @@ series: "Artificial Intelligent"
 seriesOrder: 3
 ---
 
-**Linear Regression** is the foundational starting point in Machine Learning. In this guide, we break down the entire pipeline from scratch using **PyTorch**—from thorough data preprocessing (normalization, encoding, handling missing values) to forward computation, loss evaluation, and mini-batch stochastic gradient descent.
+**Linear Regression** is the simplest and most important starting point in Machine Learning. In this post, we apply it to a well-known benchmark: the [Kaggle House Prices](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques) competition, building the whole pipeline from scratch with **PyTorch**.
 
 ## Table of contents
 
 ---
 
-## 1. Mathematical Formulation
+## 1. Problem: House Price Prediction
 
-Linear Regression models the relationship between an input feature vector $\mathbf{x} \in \mathbb{R}^d$ and a continuous scalar output $y \in \mathbb{R}$ via an affine transformation:
+Given house features (like area, neighborhood, year built), our goal is to predict the final sale price:
+
+* **Input ($\mathbf{x}$)**: House features (both numbers and text categories).
+* **Target ($y$)**: `SalePrice` in USD.
+* **Goal**: Find a model $f(\mathbf{x}) \approx y$.
+
+---
+
+## 2. Math Formulation
+
+Linear Regression assumes the target is a linear combination of input features:
 
 $$
 \hat{y} = \mathbf{x} \mathbf{w} + b
 $$
 
 Where:
-* $\mathbf{w} \in \mathbb{R}^{d \times 1}$ is the **weight parameter vector**.
-* $b \in \mathbb{R}$ is the **bias parameter scalar**.
-* $\hat{y}$ is the predicted scalar.
+* $\mathbf{w}$ is the **weights vector**.
+* $b$ is the **bias scalar**.
+* $\hat{y}$ is the model prediction.
 
-When extended to a mini-batch of $n$ instances, represented as a design matrix $\mathbf{X} \in \mathbb{R}^{n \times d}$:
+For a batch of $n$ houses $\mathbf{X} \in \mathbb{R}^{n \times d}$:
 
 $$
 \hat{\mathbf{y}} = \mathbf{X}\mathbf{w} + b
@@ -42,23 +52,17 @@ $$
 
 ---
 
-## 2. Loss Function & Optimization
+## 3. Loss & Gradient Descent
 
-### Mean Squared Error (MSE)
-We quantify model error by measuring the squared Euclidean distance between predictions $\hat{\mathbf{y}}$ and ground-truth targets $\mathbf{y}$:
+### MSE Loss
+We measure error using Mean Squared Error:
 
 $$
 \mathcal{L}(\mathbf{w}, b) = \frac{1}{2n} \sum_{i=1}^{n} (\hat{y}^{(i)} - y^{(i)})^2
 $$
 
-The factor $\frac{1}{2}$ simplifies the analytical gradient:
-
-$$
-\frac{\partial \mathcal{L}}{\partial \hat{y}^{(i)}} = \hat{y}^{(i)} - y^{(i)}
-$$
-
-### Stochastic Gradient Descent (SGD)
-Parameters update iteratively against the gradient vector with learning rate $\eta > 0$:
+### Gradient Descent (SGD)
+We update weights in the opposite direction of the gradient with learning rate $\eta$:
 
 $$
 \begin{aligned}
@@ -69,34 +73,33 @@ $$
 
 ---
 
-## 3. Data Preprocessing
+## 4. Data Preprocessing
 
-Before feeding raw tabular data into our model, we apply three standard preprocessing steps:
+Raw data has missing values, text columns, and large numbers that need cleaning first:
 
-### 1. Standardization (Z-score Normalization)
-Features often exist on vastly different scales. To ensure balanced gradient descent updates across all dimensions, we rescale numerical features to zero mean ($\mu = 0$) and unit variance ($\sigma^2 = 1$):
+### 1. Different Scales & Missing Numbers
+* **Problem**: Features have very different scales (`LotArea` is in thousands, while `OverallQual` is 1 to 10). Large numbers will dominate gradient updates. Also, missing numbers (`NaN`) break matrix math.
+* **Solution**: Use **Z-score normalization** so all numbers have mean $0$ and variance $1$:
+  $$
+  x' = \frac{x - \mu}{\sigma}
+  $$
+  Then replace missing values (`NaN`) with $0$ (which is the mean value).
 
-$$
-x' = \frac{x - \mu}{\sigma}
-$$
+### 2. Text (Categorical) Features
+* **Problem**: Models only understand numbers, not text labels like `"CollgCr"` or `"Crawfor"`.
+* **Solution**: Use **One-Hot Encoding** to turn text categories into binary $0/1$ columns. Missing categories become their own dummy column.
 
-Any missing values (`NaN`) in numeric columns are then replaced with $0$, which naturally represents the mean value after standardization.
-
-### 2. One-Hot Encoding
-Discrete categorical features (e.g., neighborhood, roof style) cannot be used directly in matrix operations. We convert them into binary indicator columns (one-hot vectors), while treating missing entries (`NaN`) as a distinct valid category.
-
-### 3. Log-Transforming Targets
-When predicting continuous quantities with wide dynamic ranges (such as housing prices), targets are often skewed. Transforming labels with the natural logarithm:
-
-$$
-y_{\text{log}} = \log(y)
-$$
-
-stabilizes variance and converts absolute errors into relative percentage errors, making training substantially more stable.
+### 3. Skewed Price Distribution
+* **Problem**: House prices are unevenly distributed (a few luxury houses are huge outliers). Also, a \$20k error matters much more on a \$100k house than on a \$1M house.
+* **Solution**: Take the natural log of prices:
+  $$
+  y_{\text{log}} = \log(\text{SalePrice})
+  $$
+  Training on $y_{\text{log}}$ measures percentage errors and matches Kaggle's evaluation metric. We convert back at the end using $\exp(\hat{y}_{\text{log}})$.
 
 ---
 
-## 4. Implementation from Scratch
+## 5. Implementation from Scratch
 
 ```python
 import pandas as pd
