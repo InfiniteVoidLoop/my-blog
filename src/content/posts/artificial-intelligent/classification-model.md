@@ -68,11 +68,15 @@ $$
 
 Every class is now treated equally at the exact same distance from one another.
 
+### Visualizing the Fashion-MNIST Dataset
+
+Before building our model, let's inspect sample images from the Fashion-MNIST dataset along with their ground-truth labels:
+
+![Fashion-MNIST Dataset Samples](@/assets/images/artificial-intelligent/sample-dataset.png)
+
 ### Implementing One-Hot Encoding in PyTorch
 
 Here is how we can implement One-Hot Encoding from scratch for our 10 Fashion-MNIST clothing categories:
-
-![Fashion-MNIST Dataset Samples](@/assets/images/artificial-intelligent/sample-dataset.png)
 
 ```python
 import torch
