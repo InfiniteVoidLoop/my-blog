@@ -365,6 +365,36 @@ $$
 * **If $\hat{y}_c \to 1$ (Confident & Correct):** $\log(1) = 0 \implies -\log(1) = 0$. The loss is zero!
 * **If $\hat{y}_c \to 0$ (Confident & Wrong):** $\log(\hat{y}_c) \to -\infty \implies -\log(\hat{y}_c) \to +\infty$. The model gets heavily penalized!
 
+### Implementing Cross-Entropy Loss and Training Step in PyTorch
+
+Given the stable log-probabilities from `log_exp_softmax`, we compute Cross-Entropy Loss using advanced indexing directly with integer target labels $y$ (without needing manual one-hot encoding):
+
+```python
+import torch
+
+def loss(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    # y_hat is log-probabilities from log_exp_softmax
+    # -y_hat[range(len(y)), y] extracts the negative log probability of the true class
+    return -y_hat[range(len(y)), y].mean()
+
+def training_step(self, batch: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+    X, y = batch
+    outputs = self.forward(X)
+    return self.loss(self.log_exp_softmax(outputs), y)
+```
+
+> [!TIP]
+> **PyTorch Built-in (`F.nll_loss` / `nn.CrossEntropyLoss`):**
+> * Because `log_exp_softmax` already computes log-probabilities $\log(\hat{y})$, passing them to PyTorch's Negative Log-Likelihood loss `F.nll_loss` gives the exact same result:
+>   ```python
+>   loss = F.nll_loss(log_probs, y)
+>   ```
+> * In standard PyTorch workflows, `torch.nn.CrossEntropyLoss()` combines `log_softmax` and `nll_loss` directly from raw logits $\mathbf{o}$ in one optimized step:
+>   ```python
+>   criterion = torch.nn.CrossEntropyLoss()
+>   loss = criterion(outputs, y)
+>   ```
+
 ---
 
 ## 6. Softmax and Cross-Entropy Gradient
