@@ -68,6 +68,50 @@ $$
 
 Every class is now treated equally at the exact same distance from one another.
 
+### Implementing One-Hot Encoding in PyTorch
+
+Here is how we can implement One-Hot Encoding from scratch for our 10 Fashion-MNIST clothing categories:
+
+```python
+import torch
+
+labels = [
+    "t-shirt", "trouser", "pullover", "dress", "coat",
+    "sandal", "shirt", "sneaker", "bag", "ankle boot"
+]
+
+def one_hot_encoding(label, classes_name=labels):
+    num_classes = len(classes_name)
+    vec = torch.zeros(num_classes, dtype=torch.float32)
+
+    if isinstance(label, str):
+        if label not in classes_name:
+            raise ValueError(f"Label '{label}' is not valid!")
+        idx = classes_name.index(label)
+    else:
+        idx = int(label)
+
+    vec[idx] = 1.0
+    return vec
+
+# Example: convert "shirt" (class 6) to a one-hot vector
+enc_vector = one_hot_encoding("shirt")
+print(enc_vector)
+# Output: tensor([0., 0., 0., 0., 0., 0., 1., 0., 0., 0.])
+```
+
+> [!TIP]
+> **PyTorch Built-in (`F.one_hot`):**
+> In practice, PyTorch has a built-in helper `torch.nn.functional.one_hot` that vectorizes this across entire mini-batches:
+> ```python
+> import torch.nn.functional as F
+>
+> # For a batch of label indices:
+> y_batch = torch.tensor([6, 1, 3])  # shirt, trouser, dress
+> print(F.one_hot(y_batch, num_classes=10))
+> ```
+> *(Note: When using `torch.nn.CrossEntropyLoss`, PyTorch accepts raw integer class indices directly without requiring manual one-hot encoding).*
+
 ---
 
 ## 3. Linear Model for Classification
