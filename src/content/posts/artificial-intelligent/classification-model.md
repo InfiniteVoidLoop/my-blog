@@ -198,6 +198,103 @@ $$
 
 Now $\hat{\mathbf{y}} = (\hat{y}_1, \hat{y}_2, \dots, \hat{y}_q)$ is a valid probability distribution where $0 < \hat{y}_j < 1$ and $\sum_{j=1}^q \hat{y}_j = 1$.
 
+### Problem: Overflow and Underflow
+
+Computers store 32-bit floating numbers (`float32`) within a limited range (approximately $10^{-38}$ to $10^{38}$, with a smallest positive limit around $10^{-45}$). Because the exponential function $e^x$ explodes rapidly, naive Softmax faces two serious numerical hazards:
+
+1. **Overflow ($\to +\infty$):** If any score $o_k > 88$, $\exp(o_k)$ exceeds the float32 ceiling ($10^{38}$) and overflows to `inf`.
+2. **Underflow ($\to 0.0$) and the `NaN` Disaster:** When a score is large and negative, $\exp(o_k)$ drops below the computer's precision limit and gets forced to exact `0.0`.
+
+![Softmax Improvement: Preventing Overflow and Underflow with max subtraction and LogSumExp](@/assets/images/artificial-intelligent/softmax-improvement.png)
+
+#### 1. Preventing Overflow: Subtracting the Max Logit ($\bar{o}$)
+
+To stop numbers from blowing up to $+\infty$, we subtract the maximum logit $\bar{o} = \max_k(o_k)$ from every score before exponentiating:
+
+$$
+o_j - \bar{o} \le 0 \quad (\forall j)
+$$
+
+Because every power is now $\le 0$:
+* The largest exponent is $\exp(0) = 1.0$, and all other terms are $\le 1.0$. **Overflow is completely eliminated!**
+* The denominator $\sum_k \exp(o_k - \bar{o}) \ge 1.0$, so dividing by zero is impossible.
+* Subtracting a constant leaves probabilities unchanged because $\exp(-\bar{o})$ cancels out in the fraction:
+
+$$
+\frac{\exp(o_j - \bar{o})}{\sum_k \exp(o_k - \bar{o})} = \frac{\exp(o_j)\exp(-\bar{o})}{\sum_k \exp(o_k)\exp(-\bar{o})} = \frac{\exp(o_j)}{\sum_k \exp(o_k)}
+$$
+
+#### 2. Why Underflow Still Causes `NaN` (The $-990$ Example)
+
+Subtracting $\bar{o}$ fixes overflow, but creates an **underflow trap** when calculating loss:
+
+Imagine our model outputs three raw scores: $\mathbf{o} = [1000, 10, -50]$. The maximum is $\bar{o} = 1000$.
+
+1. **Subtracting max:**
+   $$
+   \mathbf{o} - \bar{o} = [0, -990, -1050]
+   $$
+2. **Taking the exponent:** For the second class, $o_2 - \bar{o} = -990$:
+   $$
+   \exp(-990) \approx 10^{-430} \longrightarrow \mathbf{0.0}
+   $$
+   Because $\exp(-990)$ is far smaller than float32's minimum limit ($10^{-45}$), the CPU/GPU forces it to exact **$0.0$**.
+3. **The Softmax output:**
+   $$
+   \hat{y}_2 = \frac{0.0}{1.0 + 0.0 + 0.0} = \mathbf{0.0}
+   $$
+4. **The Disaster in Cross-Entropy Loss:** If class 2 happens to be the true label ($y_2 = 1$), our loss function evaluates:
+   $$
+   l = -\log(\hat{y}_2) = -\log(0.0) = \mathbf{+\infty} \quad (\text{since } \log(0) \to -\infty)
+   $$
+5. **The `NaN` Contagion in Backpropagation:** During gradient descent, calculating gradients with infinity produces undefined arithmetic like $\infty - \infty$ or $0 \times \infty$. In computer hardware (IEEE 754), these operations yield **`NaN` (Not a Number)**. Once a single weight turns into `NaN`, it spreads exponentially across the entire network in the next iteration, destroying the model.
+
+#### 3. The Solution: The LogSumExp Trick
+
+To prevent tiny probabilities from rounding to $0.0$ and blowing up into $\log(0) \to -\infty$, we **never calculate Softmax first and then take its $\log$ separately**.
+
+Instead, we combine $\log$ and $\text{softmax}$ algebraically into a single stable formula:
+
+$$
+\log \hat{y}_j = \log \left( \frac{\exp(o_j - \bar{o})}{\sum_k \exp(o_k - \bar{o})} \right) = (o_j - \bar{o}) - \log \sum_k \exp(o_k - \bar{o})
+$$
+
+Now, re-evaluating our example with class 2 ($o_2 - \bar{o} = -990$):
+* $(o_2 - \bar{o}) = -990.0$ remains a normal, valid float (never rounded to $0$).
+* $\sum_k \exp(o_k - \bar{o}) = 1.0 + 0.0 + 0.0 = 1.0 \implies \log(1.0) = 0.0$.
+* The final log probability is:
+  $$
+  \log \hat{y}_2 = -990.0 - 0.0 = \mathbf{-990.0}
+  $$
+
+No $\log(0)$, no infinity, and zero `NaN`s!
+
+### Implementing Softmax in PyTorch
+
+Here is how we implement the Softmax operation from scratch:
+
+```python
+import torch
+
+def softmax(outputs: torch.Tensor) -> torch.Tensor:
+    # 1. Exponentiate logits to make them strictly positive
+    outputs_exp = torch.exp(outputs)
+    # 2. Sum along class dimension (keepdim=True keeps shape (B, 1) for broadcasting)
+    partition = outputs_exp.sum(dim=-1, keepdim=True)
+    # 3. Normalize so each row sums to 1
+    return outputs_exp / partition
+```
+
+> [!TIP]
+> **PyTorch Built-in (`F.softmax`):**
+> PyTorch provides an optimized, numerically stable version via `torch.nn.functional.softmax`:
+> ```python
+> import torch.nn.functional as F
+>
+> # Normalizes along dimension 1 (across all classes for each sample)
+> probs = F.softmax(outputs, dim=1)
+> ```
+
 ---
 
 ## 5. Cross-Entropy Loss
