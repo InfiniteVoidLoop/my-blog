@@ -269,7 +269,36 @@ Now, re-evaluating our example with class 2 ($o_2 - \bar{o} = -990$):
 
 No $\log(0)$, no infinity, and zero `NaN`s!
 
-### Implementing Softmax in PyTorch
+### Implementing Stable Log-Softmax (LogSumExp) in PyTorch
+
+Here is how we implement the numerically stable Log-Softmax operation using the LogSumExp trick from scratch:
+
+```python
+import torch
+
+def log_exp_softmax(outputs: torch.Tensor) -> torch.Tensor:
+    # 1. Get max logit per sample (.values extracts tensor from namedtuple)
+    max_outputs = outputs.max(dim=1, keepdim=True).values
+    # 2. Subtract max to prevent overflow: exp(o - o_max)
+    outputs_exp = torch.exp(outputs - max_outputs)
+    # 3. Sum the exponentials along class dimension
+    partition = outputs_exp.sum(dim=1, keepdim=True)
+    # 4. Compute (o - o_max) - log(sum)
+    return (outputs - max_outputs) - torch.log(partition)
+```
+
+> [!TIP]
+> **PyTorch Built-in (`F.log_softmax`):**
+> PyTorch implements this exact LogSumExp stabilization under the hood via `torch.nn.functional.log_softmax`:
+> ```python
+> import torch.nn.functional as F
+>
+> # Numerically stable log probabilities
+> log_probs = F.log_softmax(outputs, dim=1)
+> ```
+> In practice, `torch.nn.CrossEntropyLoss` directly combines `log_softmax` and `nll_loss` (Negative Log-Likelihood) into a single, high-performance C++/CUDA kernel.
+
+### Implementing Standard Softmax in PyTorch
 
 Here is how we implement the Softmax operation from scratch:
 
@@ -280,7 +309,7 @@ def softmax(outputs: torch.Tensor) -> torch.Tensor:
     # 1. Exponentiate logits to make them strictly positive
     outputs_exp = torch.exp(outputs)
     # 2. Sum along class dimension (keepdim=True keeps shape (B, 1) for broadcasting)
-    partition = outputs_exp.sum(dim=-1, keepdim=True)
+    partition = outputs_exp.sum(dim=1, keepdim=True)
     # 3. Normalize so each row sums to 1
     return outputs_exp / partition
 ```
