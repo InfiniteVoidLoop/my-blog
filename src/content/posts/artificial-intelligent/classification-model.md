@@ -622,6 +622,22 @@ Training our scratch model for 5 epochs steadily drives loss down from `0.6243` 
 
 ![Training execution log showing loss decreasing and accuracy reaching 83.43%](@/assets/images/artificial-intelligent/image-classiify-result.png)
 
+### Interpreting the Model: Learned Weight Templates
+
+A linear model cannot understand complex shapes or real spatial depth. So why does it still reach **~84% accuracy**?
+
+Under the hood, it performs **Template Matching**:
+
+![Learned Weights as 28x28 Spatial Templates for each class](@/assets/images/artificial-intelligent/learned-weights.png)
+
+* **Each class learns an average template:** Reshaping each weight column $\mathbf{w}_k$ back to $28 \times 28$ reveals a ghostly "prototype" image of that category.
+* **Positive weights ($w > 0$, Red):** Positions where the item usually has bright pixels (like the two trouser legs or the sole of a sneaker). Matching pixels here boost the class score.
+* **Negative weights ($w < 0$, Blue):** Positions that must remain dark (like the empty space between two trouser legs). Bright pixels here heavily penalize the score.
+* **Classification by overlay:** The model simply overlays the input image onto all 10 templates. Whichever template has the strongest overlap (highest dot product $\mathbf{x} \cdot \mathbf{w}_k$) wins!
+
+> [!NOTE]
+> This works surprisingly well on Fashion-MNIST because all images are cleanly normalized: centered, identical in size, and viewed from the exact same angle.
+
 ---
 
 ## 8. Conclusion
