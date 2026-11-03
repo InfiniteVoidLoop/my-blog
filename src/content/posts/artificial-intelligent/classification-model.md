@@ -142,6 +142,39 @@ $$
 \mathbf{o} = \mathbf{W}^\top \mathbf{x} + \mathbf{b}
 $$
 
+### Implementing the Linear Model in PyTorch
+
+Here is how we set up the parameters $\mathbf{W}, \mathbf{b}$ and the forward pass from scratch:
+
+```python
+import torch
+
+class ClassificationModel:
+    def __init__(
+        self,
+        num_features: int,
+        num_classes: int,
+        learning_rate: float = 0.1,
+        sigma: float = 0.01,
+    ):
+        self.num_features = num_features
+        self.learning_rate = learning_rate
+        # Weights matrix: shape (num_features, num_classes)
+        self.W = torch.normal(
+            0, sigma, (num_features, num_classes), requires_grad=True
+        )
+        # Bias vector: shape (num_classes,)
+        self.b = torch.zeros(num_classes, requires_grad=True)
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        # Flatten image batches from (batch_size, 1, H, W) to (batch_size, num_features)
+        X = X.reshape(-1, self.num_features)
+        return torch.matmul(X, self.W) + self.b
+```
+
+> [!NOTE]
+> For Fashion-MNIST, each image is $28 \times 28 = 784$ pixels and there are $10$ categories. Thus, `num_features = 784` and `num_classes = 10`. The weights matrix $\mathbf{W}$ will have size $784 \times 10$, and the bias $\mathbf{b}$ will have size $10$.
+
 ---
 
 ## 4. The Softmax Function
