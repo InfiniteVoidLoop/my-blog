@@ -72,6 +72,8 @@ Every class is now treated equally at the exact same distance from one another.
 
 Here is how we can implement One-Hot Encoding from scratch for our 10 Fashion-MNIST clothing categories:
 
+![Fashion-MNIST Dataset Samples](@/assets/images/artificial-intelligent/sample-dataset.png)
+
 ```python
 import torch
 
@@ -438,7 +440,191 @@ $$
 
 ---
 
-## 7. Conclusion
+## 7. Putting It All Together: Complete PyTorch Pipeline
+
+Here is the complete, self-contained implementation from scratch — combining data loading, model architecture, stable Log-Softmax, Cross-Entropy Loss, custom SGD optimizer, and the training loop:
+
+```python
+import matplotlib.pyplot as plt
+import torch
+from torchvision import datasets, transforms
+
+
+def show_images(imgs, num_rows, num_cols, titles=None, scale=1.5, save_path=None):
+    figsize = (num_cols * scale, num_rows * scale)
+    fig, axes = plt.subplots(num_rows, num_cols, figsize=figsize)
+    if num_rows * num_cols == 1:
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+
+    for i, (ax, img) in enumerate(zip(axes, imgs)):
+        if isinstance(img, torch.Tensor):
+            img = img.detach().cpu().numpy()
+
+        if img.ndim == 3:
+            if img.shape[0] == 1:
+                img = img.squeeze(0)
+            elif img.shape[0] == 3:
+                img = img.transpose(1, 2, 0)
+
+        cmap = "gray" if img.ndim == 2 else None
+        ax.imshow(img, cmap=cmap)
+        ax.axis("off")
+        if titles is not None and i < len(titles):
+            ax.set_title(titles[i], fontsize=10)
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, bbox_inches="tight")
+    else:
+        plt.show()
+    return axes
+
+
+class FashionMNIST:
+    def __init__(self, batch_size=64, resize=(28, 28), root="./data", num_workers=4):
+        self.batch_size = batch_size
+        self.resize = resize
+        self.root = root
+        self.num_workers = num_workers
+        trans = transforms.Compose([transforms.Resize(resize), transforms.ToTensor()])
+        self.train = datasets.FashionMNIST(
+            root=self.root, train=True, transform=trans, download=True
+        )
+        self.val = datasets.FashionMNIST(
+            root=self.root, train=False, transform=trans, download=True
+        )
+
+    def text_labels(self, indices):
+        labels = [
+            "t-shirt", "trouser", "pullover", "dress", "coat",
+            "sandal", "shirt", "sneaker", "bag", "ankle boot"
+        ]
+        return [labels[int(i)] for i in indices]
+
+    def get_data_loader(self, train):
+        data = self.train if train else self.val
+        return torch.utils.data.DataLoader(
+            data, self.batch_size, shuffle=train, num_workers=self.num_workers
+        )
+
+    def visualize(self, batch, nrows=1, ncols=8, labels=None, save_path=None):
+        X, y = batch
+        n = nrows * ncols
+        imgs = X[:n]
+        if labels is None:
+            lbls = self.text_labels(y[:n])
+        else:
+            lbls = labels[:n]
+        return show_images(imgs, nrows, ncols, titles=lbls, save_path=save_path)
+
+
+class ClassificationModel:
+    def __init__(
+        self,
+        num_features: int,
+        num_classes: int,
+        learning_rate: float = 0.1,
+        sigma: float = 0.01,
+    ):
+        self.num_features = num_features
+        self.learning_rate = learning_rate
+        self.W = torch.normal(
+            0, sigma, (num_features, num_classes), dtype=torch.float32, requires_grad=True
+        )
+        self.b = torch.zeros(num_classes, dtype=torch.float32, requires_grad=True)
+        self.params = [self.W, self.b]
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        X = X.reshape(-1, self.num_features)
+        return torch.matmul(X, self.W) + self.b
+
+    def log_exp_softmax(self, outputs: torch.Tensor) -> torch.Tensor:
+        output_max = outputs.max(dim=1, keepdim=True).values
+        output_exp = torch.exp(outputs - output_max)
+        sum_exp = output_exp.sum(dim=1, keepdim=True)
+        return outputs - output_max - torch.log(sum_exp)
+
+    def loss(self, y_hat: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        return -y_hat[range(len(y)), y].mean()
+
+    def training_step(self, batch: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+        X, y = batch
+        outputs = self.forward(X)
+        return self.loss(self.log_exp_softmax(outputs), y)
+
+
+class SGD:
+    def __init__(self, params: list[torch.Tensor], learning_rate: float):
+        self.params = params
+        self.learning_rate = learning_rate
+
+    def step(self):
+        with torch.no_grad():
+            for param in self.params:
+                if param.grad is not None:
+                    param -= self.learning_rate * param.grad
+
+    def zero_grad(self):
+        for param in self.params:
+            if param.grad is not None:
+                param.grad.zero_()
+
+
+def evaluate_accuracy(model: ClassificationModel, data_loader) -> float:
+    correct_count = 0
+    total_count = 0
+    with torch.no_grad():
+        for X, y in data_loader:
+            outputs = model.forward(X)
+            predictions = outputs.argmax(dim=1)
+            correct_count += (predictions == y).sum().item()
+            total_count += y.shape[0]
+    return correct_count / total_count
+
+
+if __name__ == "__main__":
+    data = FashionMNIST(batch_size=64, resize=(28, 28), root="./data")
+    train_loader = data.get_data_loader(train=True)
+    val_loader = data.get_data_loader(train=False)
+
+    model = ClassificationModel(
+        num_features=28 * 28, num_classes=10, learning_rate=0.1
+    )
+    optimizer = SGD(model.params, learning_rate=model.learning_rate)
+    num_epochs = 5
+
+    print("Starting training...")
+    for epoch in range(num_epochs):
+        total_loss = 0.0
+        num_batches = 0
+
+        for batch in train_loader:
+            optimizer.zero_grad()
+            loss = model.training_step(batch)
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+            num_batches += 1
+
+        val_accuracy = evaluate_accuracy(model, val_loader)
+        average_loss = total_loss / num_batches
+        print(
+            f"Epoch {epoch + 1}/{num_epochs} | Loss: {average_loss:.4f} | Validation Accuracy: {val_accuracy * 100:.2f}%"
+        )
+```
+
+### Training Results
+
+Training our scratch model for 5 epochs steadily drives loss down from `0.6243` to `0.4410`, reaching **83.43% Validation Accuracy**:
+
+![Training execution log showing loss decreasing and accuracy reaching 83.43%](@/assets/images/artificial-intelligent/image-classiify-result.png)
+
+---
+
+## 8. Conclusion
 
 * **Regression vs. Classification:** Regression predicts *"How much?"* (1 output); Classification predicts *"Which category?"* ($q$ outputs).
 * **One-Hot Encoding:** Represents unordered categories without introducing fake numerical distances.
