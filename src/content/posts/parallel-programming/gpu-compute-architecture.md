@@ -426,9 +426,9 @@ $$
 - **Multiple of 32:** Always set block dimensions to a multiple of 32 threads.
 - **Default Baseline:** Start with **128 to 256 threads per block** (2D: $16 \times 16$ or $32 \times 8$).
 - **Aim for $\ge 2$ Resident Blocks per SM:** Ensures other blocks keep cores busy if one block finishes early.
-- **Is 100% Occupancy Always Necessary?**
-  - **Memory-bound kernels:** Yes, **high occupancy (75–100%)** is crucial to hide DRAM latency.
-  - **Compute-bound kernels:** No, **lower occupancy (25–50%)** is often fine because each thread gets more registers and avoids spilling.
+- **Is 100% Occupancy Always Necessary? (Memory-Bound vs Compute-Bound)**
+  - **Memory-Bound Kernels (e.g. Vector Add, ReLU):** Spends most time waiting for data from slow DRAM (low arithmetic intensity). **High occupancy (75–100%)** is vital here so the scheduler always has ready warps to hide memory latency.
+  - **Compute-Bound Kernels (e.g. Matrix Multiply GEMM):** Spends most time running heavy math on ALUs (high arithmetic intensity). **Lower occupancy (25–50%)** is completely fine because ALUs are already 100% busy; fewer threads allow each thread to use more registers and shared memory without spilling.
 
 ---
 
