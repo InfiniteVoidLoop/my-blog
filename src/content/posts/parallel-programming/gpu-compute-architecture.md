@@ -353,6 +353,73 @@ On a GPU, **all registers for all resident warps stay on-chip** in the SM's mass
 *Figure 9: Warp Scheduler and Instruction Dispatch Units cycling through active Warps across time.*
 
 > [!TIP]
-> **Takeaway:** By holding far more warps than it has physical cores, an SM ensures there is always at least one **Eligible** warp ready to calculate while other warps are **Stalled** waiting for memory. 
+> **Takeaway:** By holding far more warps than it has physical cores, an SM ensures there is always at least one **Eligible** warp ready to calculate while other warps are **Stalled** waiting for memory.
+
+---
+
+### Hardware Resources & GPU Occupancy 📊
+
+**Occupancy** measures how effectively the hardware resources of an SM are utilized:
+
+$$\text{Occupancy} = \frac{\text{Active Warps Resident on SM}}{\text{Maximum Warps Supported by SM Hardware}}$$
+
+* **Theoretical Occupancy:** Computed statically from resource limits (registers, shared memory, and block size).
+* **Achieved Occupancy:** Measured dynamically during execution using NVIDIA Nsight Compute (`ncu`).
+
+---
+
+#### Resource Partitioning (The Limiting Bottlenecks)
+
+Every resident block and warp requires a slice of the SM's physical hardware:
+
+![Resource Partitioning](@/assets/images/parallel_programming/resource-partitioning.png)
+*Figure 10: Dynamic hardware resource partitioning across resident blocks and warps in an SM.*
+
+| Hardware Resource | Limit per SM (NVIDIA A100) | Limit per SM (Tesla T4) |
+| :--- | :--- | :--- |
+| **Max Block Slots** | 32 blocks | 16 blocks |
+| **Max Thread / Warp Slots** | 64 warps (2,048 threads) | 32 warps (1,024 threads) |
+| **32-bit Registers** | 65,536 registers | 65,536 registers |
+| **Shared Memory** | Up to 164 KB | Up to 64 KB |
+
+> [!IMPORTANT]
+> **The Bottleneck Rule:** The number of resident blocks an SM can host simultaneously is determined by **whichever of these four resources runs out first**.
+
+---
+
+#### Key Resource Pitfalls to Avoid ⚠️
+
+1. **Block Size Too Small (e.g. 32 threads):**
+   - On an A100, the SM allows at most 32 block slots.
+   - If your block size is 32, the SM can only host $32 \times 32 = 1,024$ threads $\rightarrow$ **Occupancy is capped at 50%** because you hit the block slot ceiling before utilizing all thread slots!
+2. **The "Register Cliff" Effect:**
+   - On an A100 with 512 threads per block:
+     - At **31 registers/thread**: The SM can fit 4 blocks ($2,048$ threads) $\rightarrow$ **100% Occupancy**.
+     - Increasing by just 2 registers to **33 registers/thread**: $33 \times 512 = 16,896$ registers/block. The SM's 65,536 registers can only fit 3 blocks ($50,688$ registers). The 4th block doesn't fit $\rightarrow$ **Occupancy plunges to 75%!**
+
+---
+
+#### Inspecting Registers & Avoiding Spilling 🔍
+
+You can check exact register usage during compilation:
+
+```shell
+nvcc -O3 -arch=sm_75 -Xptxas -v kernel.cu
+# Output: Used 32 registers, 0 bytes spill stores, 0 bytes spill loads
+```
+
+> [!WARNING]
+> **Register Spilling:** If you artificially restrict registers (e.g. `-maxrregcount=32`) below what a kernel needs, excess variables spill into off-chip **Local Memory (DRAM)**, causing severe slowdowns. Always ensure `spill stores` and `spill loads` stay at 0.
+
+---
+
+#### Practical Rules for Block Size Selection 🎯
+
+* **Multiple of 32:** Always configure block dimensions as a multiple of warp size (32).
+* **Sweet Spot:** Start with **128 to 256 threads per block** (2D: $16 \times 16$ or $32 \times 8$).
+* **Aim for $\ge 2$ Resident Blocks per SM:** Ensures work remains if one block finishes early.
+* **Is 100% Occupancy Always Necessary?**
+  * **Memory-bound kernels:** Yes, **high occupancy (75–100%)** is vital to hide DRAM latency.
+  * **Compute-bound kernels:** No, **lower occupancy (25–50%)** can be optimal because each active thread gets more registers and shared memory without spilling. 
 
 
