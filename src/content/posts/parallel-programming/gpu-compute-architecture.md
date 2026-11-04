@@ -316,6 +316,22 @@ Inside each SM, the Warp Scheduler categorizes all resident warps into four hard
 
 ---
 
+#### Warp Scheduling Flow: Ready, Executing & Suspended 🔄
+
+In practice, warps continuously cycle through a three-stage execution loop:
+
+![Warp Scheduling and Execution Lifecycle](@/assets/images/parallel_programming/warp-execution-flow.png)
+*Figure 8: Warp scheduling cycle: Ready Warps, Executing Warp, and Suspended Warps waiting for memory requests.*
+
+1. **Ready Warps (Eligible Pool):** Warps that have all their operands ready and are waiting in the pool to be scheduled.
+2. **Executing Warp (Selected):** The Warp Scheduler picks an available Ready Warp and issues its instruction to the cores.
+3. **Suspended Warps (Memory Request):**
+   - If the executing warp issues a high-latency **Memory Request** (e.g. reading from off-chip DRAM), it immediately moves into the **Suspended Warps** pool.
+   - The scheduler never stalls—it instantly selects another warp from the **Ready Warps** pool.
+4. **Return to Ready:** Once the memory request completes and data arrives at the SM, the suspended warp transitions back into **Ready Warps** to resume execution.
+
+---
+
 #### Zero-Overhead Context Switching ⚡
 
 On a CPU, switching between threads requires saving and restoring registers to RAM (costing thousands of cycles).
@@ -334,7 +350,7 @@ On a GPU, **all registers for all resident warps stay on-chip** in the SM's mass
 ```
 
 ![Warp Scheduler Hardware Execution Timeline](@/assets/images/parallel_programming/warp-scheduler.png)
-*Figure 8: Warp Scheduler and Instruction Dispatch Units cycling through active Warps across time.*
+*Figure 9: Warp Scheduler and Instruction Dispatch Units cycling through active Warps across time.*
 
 > [!TIP]
 > **Takeaway:** By holding far more warps than it has physical cores, an SM ensures there is always at least one **Eligible** warp ready to calculate while other warps are **Stalled** waiting for memory. 
