@@ -283,31 +283,60 @@ if ((i / 32) % 2 == 0) {
 
 ---
 
-### Warp Scheduler: Latency Hiding in Action 🔄
+### Warp Scheduler & Latency Hiding 🔄
 
-What happens when a Warp has to wait 200–400 clock cycles to fetch data from memory (DRAM)? Does the GPU stall and take a coffee break? **Never.**
+Why does an SM hold up to **64 warps (2,048 threads)** when it only has enough physical cores to execute **1 to 4 warps per cycle**?
 
-This is where the **Warp Scheduler** shines:
+The answer lies in **Latency Hiding**:
+* **Arithmetic instructions (FP32 math):** Take only **~4 clock cycles**.
+* **Global memory access (DRAM):** Takes **400–800 clock cycles** ($100\times$ slower!).
 
-![Warp Scheduler Hardware Execution Timeline](@/assets/images/parallel_programming/warp-scheduler.png)
-*Figure 7: Warp Scheduler and Instruction Dispatch Units cycling through active Warps across time.*
+If an SM only ran as many threads as it had cores, the cores would stall and sit idle for hundreds of cycles every time memory is accessed. To hide a latency of $n$ cycles, the scheduler needs roughly $n$ ready instructions across resident warps to keep the execution pipelines 100% full.
 
-#### How the Scheduling Flow Works (Zero-Overhead Context Switching):
+---
 
-In each SM, the **Warp Scheduler** continuously scans all assigned warps to see which ones are ready to calculate. Switching between warps costs **zero clock cycles** because every warp's state (registers) stays resident on chip:
+#### The 4 Warp States 🚥
+
+Inside each SM, the Warp Scheduler categorizes all resident warps into four hardware states:
+
+![Warp States Transition Flow](@/assets/images/parallel_programming/warp-states.png)
+*Figure 7: Hardware transition flow across Active, Stalled, Eligible, and Selected warp states.*
+
+| Warp State | Meaning |
+| :--- | :--- |
+| **Active (Resident)** | Assigned to the SM and allocated registers (from block start to block end). |
+| **Stalled** | Waiting this cycle (waiting for DRAM data, dependency, or a barrier). |
+| **Eligible** | Ready to issue this cycle (all operands ready, execution unit free). |
+| **Selected** | Chosen by the scheduler to issue its instruction in this clock cycle. |
+
+**At every clock cycle, the Warp Scheduler:**
+1. Checks which resident warps are **Eligible**.
+2. Selects one (or more) eligible warps (**Selected**).
+3. Issues their next instruction to the execution units.
+
+---
+
+#### Zero-Overhead Context Switching ⚡
+
+On a CPU, switching between threads requires saving and restoring registers to RAM (costing thousands of cycles).
+
+On a GPU, **all registers for all resident warps stay on-chip** in the SM's massive Register File (e.g. 256 KB on A100). Switching between warps costs **zero clock cycles**—the scheduler simply points to a different warp in the next cycle:
 
 ```
 [Cycle 1] ──► Warp 8 is ready  ──► Dispatch Instruction 11 (e.g. Memory Load)
-[Cycle 2] ──► Warp 8 is WAITING for memory!
-              Warp Scheduler immediately swaps:
-              ──► Warp 2 is ready  ──► Dispatch Instruction 42 (e.g. Math FADD)
-[Cycle 3] ──► Warp 14 is ready ──► Dispatch Instruction 95
+[Cycle 2] ──► Warp 8 is WAITING for DRAM (Stalled)!
+              Warp Scheduler immediately swaps (0 cycles):
+              ──► Warp 2 is ready (Eligible) ──► Dispatch Instruction 42 (Math FADD)
+[Cycle 3] ──► Warp 14 is ready (Eligible)    ──► Dispatch Instruction 95
   ...
-[Cycle N] ──► Warp 8's data arrived!
-              ──► Warp 8 is back in action ──► Dispatch Instruction 12
+[Cycle N] ──► Warp 8's DRAM data arrived (turns Eligible)!
+              ──► Warp 8 is back in action   ──► Dispatch Instruction 12
 ```
 
+![Warp Scheduler Hardware Execution Timeline](@/assets/images/parallel_programming/warp-scheduler.png)
+*Figure 8: Warp Scheduler and Instruction Dispatch Units cycling through active Warps across time.*
+
 > [!TIP]
-> **Latency Hiding:** While one Warp waits for slow memory data, other Warps keep the CUDA cores 100% busy doing calculations. 
+> **Takeaway:** By holding far more warps than it has physical cores, an SM ensures there is always at least one **Eligible** warp ready to calculate while other warps are **Stalled** waiting for memory. 
 
 
