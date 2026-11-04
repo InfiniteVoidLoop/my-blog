@@ -57,7 +57,88 @@ As you can see above, these architectures are quite similar. In fact, **CUDA vir
 > [!IMPORTANT]
 > **Blocks can be assigned and executed on SMs in an arbitrary order** (concurrently, sequentially, or interleaved across different SMs).
 
-We will discuss and provide concrete examples about this later.
+---
+
+### Blocks Must Be Independent 🛑
+
+To allow hardware scalability across GPUs with varying numbers of SMs, CUDA requires that **blocks execute completely independently**:
+
+- **No inter-block synchronization:** Threads in different blocks **cannot** synchronize or cooperate with each other directly.
+- **Why? The Deadlock Trap:** Suppose Thread $a$ in Block $A$ waits on a flag set by Thread $b$ in Block $B$. If the GPU only has enough resources to run Block $A$ first, Block $B$ waits in the queue and never gets scheduled. Block $A$ waits forever for Block $B$ $\rightarrow$ **Deadlock!**
+
+```cpp
+// ❌ INCORRECT: Inter-block busy waiting causes deadlocks!
+__global__ void bad_interblock(volatile int* flag, int* data) {
+    if (blockIdx.x == 0 && threadIdx.x == 0) {
+        while (*flag == 0) { } // Block 0 waits for Block 1
+        data[0] = data[1];
+    }
+    if (blockIdx.x == 1 && threadIdx.x == 0) {
+        data[1] = 42;
+        *flag = 1;             // Block 1 may never be scheduled!
+    }
+}
+```
+
+> [!TIP]
+> **How to communicate across blocks correctly:**
+> 1. **Kernel boundaries:** Split work into two kernels. The end of a kernel launch acts as a global barrier across all blocks.
+> 2. **Atomic operations:** Use atomic functions (`atomicAdd`, etc.) for race-free updates without waiting.
+
+---
+
+### Cooperation Inside a Block 🤝
+
+While different blocks are isolated, threads inside the **same block** can closely cooperate:
+
+1. **Shared Memory (`__shared__`):** High-speed, on-chip SRAM shared by all threads in the block.
+2. **Barrier Synchronization (`__syncthreads()`):**
+   - Every thread in the block stops and waits at the barrier.
+   - No thread proceeds until **all** threads in the block have arrived.
+   - Guarantees that memory writes before the barrier are visible to all threads after it.
+
+![Barrier synchronization in time](@/assets/images/parallel_programming/barrier-synchronization.png)
+*Figure 4: Barrier synchronization (__syncthreads) coordinating threads over time.*
+
+#### Barrier Pitfalls to Avoid ⚠️
+
+`__syncthreads()` is powerful, but misuse leads to undefined behavior or silent hangs:
+
+##### 1. Divergent Barriers
+`__syncthreads()` must be executed by **all threads** in a block. Placing it inside a branch where threads take different paths leaves threads waiting on opposite sides forever:
+
+```cpp
+// ❌ WRONG: Neither barrier sees all threads -> undefined behavior / hang
+if (threadIdx.x % 2 == 0) {
+    __syncthreads();
+} else {
+    __syncthreads();
+}
+
+// ✔️ CORRECT: Condition is uniform for the entire block
+if (blockIdx.x % 2 == 0) {
+    __syncthreads(); // Safe: all threads in the block take this branch together
+}
+```
+
+##### 2. Early Return
+Calling `return` early before a barrier means some threads exit, stranding the remaining threads waiting at `__syncthreads()`:
+
+```cpp
+// ❌ WRONG: Out-of-bounds threads return early, trapping others at the barrier
+if (t >= count) return;
+float v = a[start + count - 1 - t];
+__syncthreads();
+a[start + t] = v;
+
+// ✔️ CORRECT: Guard the work, not the barrier
+float v = 0.0f;
+if (t < count) v = a[start + count - 1 - t]; // Only valid threads read
+__syncthreads();                             // ALL threads reach the barrier
+if (t < count) a[start + t] = v;             // Only valid threads write
+```
+
+---
 
 ### What is a Warp? ⚡
 
@@ -67,7 +148,7 @@ In software, program pretends every thread runs on its own. But down in hardware
 > In simple terms, a **Warp** is just a group of **32 threads**
 
 ![Warp Hardware Execution Model](@/assets/images/parallel_programming/warp.png)
-*Figure 4: Logical Thread Blocks partitioned into 32-thread hardware Warps executed by an SM.*
+*Figure 5: Logical Thread Blocks partitioned into 32-thread hardware Warps executed by an SM.*
 
 Here is how this works:
 
@@ -85,7 +166,7 @@ What happens when a Warp has to wait 200–400 clock cycles to fetch data from m
 This is where the **Warp Scheduler** shines:
 
 ![Warp Scheduler Hardware Execution Timeline](@/assets/images/parallel_programming/warp-scheduler.png)
-*Figure 5: Warp Scheduler and Instruction Dispatch Units cycling through active Warps across time.*
+*Figure 6: Warp Scheduler and Instruction Dispatch Units cycling through active Warps across time.*
 
 #### How the Scheduling Flow Works (Zero-Overhead Context Switching):
 
