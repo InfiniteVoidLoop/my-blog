@@ -130,6 +130,8 @@ $$
 \text{ReLU}(x) = \max(0, x)
 $$
 
+![ReLU Activation Function: Zero for negative inputs, linear for positive inputs](@/assets/images/artificial-intelligent/MLP/relu-function.png)
+
 If $x > 0$, it lets the signal pass through untouched ($\text{gradient} = 1$). If $x \le 0$, it turns the neuron off ($\text{gradient} = 0$).
 
 #### 2. Sigmoid
