@@ -152,6 +152,8 @@ $$
 \tanh(x) = \frac{1 - \exp(-2x)}{1 + \exp(-2x)}
 $$
 
+![Tanh Activation Function: Zero-centered S-shaped curve squashing inputs into (-1, 1)](@/assets/images/artificial-intelligent/MLP/tan-function.png)
+
 ---
 
 ## 5. Summary & Key Takeaways
