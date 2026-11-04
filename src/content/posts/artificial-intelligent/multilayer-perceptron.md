@@ -141,6 +141,8 @@ $$
 \sigma(x) = \frac{1}{1 + \exp(-x)}
 $$
 
+![Sigmoid Activation Function: S-shaped curve squashing inputs into (0, 1)](@/assets/images/artificial-intelligent/MLP/sigmoid-function.png)
+
 Historically popular, but rarely used in hidden layers today because its gradients vanish near the tails ($x \to \pm\infty$).
 
 #### 3. Tanh (Hyperbolic Tangent)
