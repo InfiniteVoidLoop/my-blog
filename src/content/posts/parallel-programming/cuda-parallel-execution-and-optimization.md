@@ -324,17 +324,8 @@ In real-world applications, arrays contain millions of elements ($n \gg 2048$). 
 2. **Local Block Reduction:** Each block computes its own **partial sum** using tree reduction.
 3. **Global Accumulation:** Combine the partial sums into the final result.
 
-```
-Input Array: [ Chunk 0 ] [ Chunk 1 ] [ Chunk 2 ] ... [ Chunk Grid-1 ]
-                 │            │            │                  │
-           Block 0      Block 1      Block 2            Block Grid-1
-                 │            │            │                  │
-                 ▼            ▼            ▼                  ▼
-Partial Sums: [ sum_0 ]    [ sum_1 ]    [ sum_2 ]   ...    [ sum_k ]
-                 └────────────┴────────────┴──────────────────┘
-                                      │
-                        Final Sum (Host or atomicAdd)
-```
+![Hierarchical Reduction for Bigger Inputs](@/assets/images/parallel_programming/hierarchical-reduction.png)
+*Figure 2: Hierarchical reduction partitioning input into blocks to produce partial sums.*
 
 #### Kernel Implementation (`V1_naive`)
 
