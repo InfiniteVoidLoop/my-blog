@@ -378,3 +378,87 @@ for (int b = 0; b < gridSize.x; b++) {
 > [!WARNING]
 > **Pitfall: In-Place Reduction Destroys Input Data!**  
 > `in[i] += in[i + stride]` modifies the input array in-place. If benchmarking execution time across multiple iterations, you must restore the original input array (`cudaMemcpy`) **before each timed run**, otherwise subsequent runs will sum already-reduced values!
+
+
+---
+
+### 6. Optimize Round 1: Reducing Warp Divergence ($V_1 \rightarrow V_2$) ⚡
+
+#### Why is $V_1$ Slow? The Warp Divergence Limiter
+In $V_1$, the condition `if (threadIdx.x % stride == 0)` causes severe warp divergence.
+Consider a block of 256 threads (8 warps):
+- **`stride = 1`:** All 256 threads are active $\rightarrow$ **0 diverged warps**.
+- **`stride = 2`:** Threads with `tid % 2 == 0` run (128 threads). Every warp has 16 active and 16 idle threads $\rightarrow$ **All 8 warps diverge!**
+- **`stride = 64`:** Only 4 threads run (`tid = 0, 64, 128, 192`). They land in Warps 0, 2, 4, 6 $\rightarrow$ **4 warps diverge** (each warp runs for only 1 active thread, wasting 31 slots).
+- Across all iterations, $V_1$ triggers **47 diverged warp instances**. Moreover, the modulo operator (`%`) is an expensive division instruction on GPU.
+
+---
+
+#### The $V_2$ Solution: Pack Active Threads Together
+Instead of scattering active threads across all warps, $V_2$ compacts all working threads into the **first contiguous threads** (`threadIdx.x < threshold`).
+
+This ensures:
+- Active warps run at **100% capacity** (no divergence inside).
+- Inactive warps have **0 active threads** $\rightarrow$ the hardware warp scheduler skips them entirely with zero cost!
+
+```
+V1 (Scattered):  [X . X . X . X .]   -> Warp suffers 50% divergence
+V2 (Compacted):  [X X X X . . . .]   -> Warp 0 runs at 100%, Warp 1 disabled
+```
+
+---
+
+#### Demystifying the Index Formula
+To let adjacent threads process numbers spread across the block, $V_2$ uses:
+
+$$
+i = \text{start} + \text{threadIdx.x} \times 2 \times \text{stride}
+$$
+
+Why $2 \times \text{stride}$? It acts as a **stride multiplier** so that lower-index threads jump to the correct data pairs:
+- **`stride = 1`:** Step is $2 \times 1 = 2$. Thread 0 pairs $(0, 1)$, Thread 1 pairs $(2, 3)$, Thread 2 pairs $(4, 5)$.
+- **`stride = 2`:** Step is $2 \times 2 = 4$. Thread 0 pairs $(0, 2)$, Thread 1 pairs $(4, 6)$.
+- **`stride = 4`:** Step is $2 \times 4 = 8$. Thread 0 pairs $(0, 4)$.
+
+Threads $0, 1, 2, \dots$ do all the work, while warps with higher thread IDs stay completely asleep.
+
+---
+
+#### Kernel Implementation (`V2_compact`)
+
+```cpp
+__global__ void reduceV2_compact(int *in, int *partial, int n) {
+    int start = blockIdx.x * 2 * blockDim.x;
+
+    for (int stride = 1; stride <= blockDim.x; stride *= 2) {
+        // Stride multiplier lets contiguous threads reach distant elements
+        int i = start + threadIdx.x * 2 * stride;
+
+        // Condition packs all active threads into the front
+        if (threadIdx.x < blockDim.x / stride) {
+            if (i + stride < n) {
+                in[i] += in[i + stride];
+            }
+        }
+        __syncthreads();
+    }
+
+    if (threadIdx.x == 0) {
+        partial[blockIdx.x] = in[start];
+    }
+}
+```
+
+---
+
+#### Profiler Comparison: $V_1$ vs $V_2$
+Using Nsight Compute (`ncu`) to measure active threads per warp instruction:
+
+| Kernel Version | Active Threads / Warp Inst | Warp Efficiency | Wasted Slots |
+| :--- | :---: | :---: | :---: |
+| **$V_1$ (Naive)** | 28.75 / 32 | $\approx 90.0\%$ | $\approx 10.0\%$ |
+| **$V_2$ (Compacted)** | **31.20 / 32** | **$\approx 97.5\%$** | **$\approx 2.5\%$** |
+
+> [!NOTE]
+> **Is $V_2$ dramatically faster?**  
+> In our benchmark, execution time improves from **1.81 ms** ($V_1$) to **1.67 ms** ($V_2$). While warp efficiency jumped to 97.5%, the speedup is moderate because calculating `i` adds extra arithmetic instructions, and accessing elements with strided steps introduces **shared memory bank conflicts**. This leads us to Round 2 ($V_3$)!
