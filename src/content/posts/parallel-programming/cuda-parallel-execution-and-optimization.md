@@ -231,14 +231,8 @@ Our optimization goal is to push kernel execution toward this $0.21\text{ ms}$ c
 ### 3. Parallelize: The Reduction Tree Concept
 Instead of adding numbers sequentially, threads pair up elements in a binary tree:
 
-```
-Step 1:  [1 + 9]    [5 + 1]    [6 + 4]    [7 + 2]   -> 4 additions (half threads active)
-           10          6          10         9
-Step 2:       [10 + 6]               [10 + 9]       -> 2 additions
-                 16                     19
-Step 3:                 [16 + 19]                   -> 1 addition
-                           35
-```
+![Parallel Reduction Tree Implementation](@/assets/images/parallel_programming/reduction-tree.png)
+*Figure 2: Parallel reduction tree pairwise summation across time steps.*
 
 #### The Numbers Behind the Tree
 - **Total Work:** $\frac{N}{2} + \frac{N}{4} + \dots + 1 = \mathbf{N - 1\text{ additions}}$ (Work-efficient).
@@ -250,8 +244,146 @@ $$
 \text{Average Parallelism} = \frac{N - 1}{\log_2(N)} \approx \frac{1,000,000}{20} = \mathbf{50,000\text{ threads}}
 $$
 
+#### When is the Tree Allowed?
+The parallel tree changes the evaluation order:
+- **Sequential:** $(((a \oplus b) \oplus c) \oplus d)$
+- **Parallel:** $((a \oplus b) \oplus (c \oplus d))$
+
+The operation must satisfy:
+- **Associative:** $(a \oplus b) \oplus c = a \oplus (b \oplus c)$
+- **Commutative:** $a \oplus b = b \oplus a$ (required when reordering operands across threads)
+
+- **Allowed:** Integer $+$, $\times$, $\min$, $\max$, AND, OR, XOR.
+- **Disallowed:** Subtraction, division (non-associative).
+- **Note on Floats:** Floating-point addition is not strictly associative due to rounding, so GPU and CPU sums can differ slightly.
+
+#### Parallel Reduction in Real Life
+- **Sports & Tournaments:** Single-elimination brackets to find a tournament winner ($\max$ reduction).
+- **Big Data & MapReduce:** Google and Hadoop partition massive datasets into chunks and use reduction trees to compute global sums, word counts, and aggregate logs.
+- **Machine Learning & Vision:** Batch normalization, loss reduction (MSE, cross-entropy), dot products, vector norms, and image histograms.
+
 > [!WARNING]
 > **The Resource Inefficiency Bottleneck:**
 > While Step 1 needs 500,000 threads, subsequent steps cut active threads in half each time. In later steps, **over 90% of threads sit idle** while still reserving registers and SM slots.
+
+---
+
+### 4. A Simple Single-Block Reduction Kernel (`reduceBlksKernel0`)
+Before scaling up to millions of elements across multiple blocks, let's examine the baseline implementation for a single block (Slide 34–35).
+
+![Simple Reduction Kernel Execution Flow](@/assets/images/parallel_programming/simple-reduction-kernel.png)
+*Figure 3: Thread-to-data mapping in a single-block reduction kernel across stride doubling steps.*
+
+#### Implementation
+```cpp
+__global__ void reduceBlksKernel0(int* in, int* out, int n) {
+    int i = 2 * threadIdx.x;
+
+    for (int stride = 1; stride <= blockDim.x; stride *= 2) {
+        if (threadIdx.x % stride == 0)
+            in[i] += in[i + stride];
+        __syncthreads();
+    }
+
+    if (threadIdx.x == 0)
+        *out = in[0];
+}
+```
+
+#### Step-by-Step Breakdown
+1. **Thread-to-Data Mapping (`i = 2 * threadIdx.x`):**
+   - Each thread initially manages two contiguous elements.
+   - Thread 0 starts at index 0, Thread 1 at index 2, Thread 2 at index 4, etc.
+2. **Iterative Stride Doubling (`stride *= 2`):**
+   - At `stride = 1`: all threads are active (`tid % 1 == 0`), pairing indices $(0, 1), (2, 3), (4, 5), \dots$.
+   - At `stride = 2`: only even threads participate (`tid % 2 == 0`), pairing $(0, 2), (4, 6), \dots$.
+   - At `stride = 4`: only threads divisible by 4 participate, pairing $(0, 4), (8, 12), \dots$.
+   - After $\log_2(\text{blockDim.x})$ steps, the block's sum accumulates at `in[0]`.
+3. **Barrier Synchronization (`__syncthreads()`):**
+   - Forces all threads in the block to finish reading and writing their pair before advancing to the next stride.
+   - Prevents **data races** where a fast thread in step $k+1$ reads an index before a slower thread in step $k$ writes to it.
+4. **Final Output (`threadIdx.x == 0`):**
+   - Thread 0 writes the reduced block result `in[0]` to `*out`.
+
+#### Critical Limitations
+> [!CAUTION]
+> **Why this kernel cannot scale directly to arbitrary input sizes:**
+> 1. **Block Boundary Constraint:** `__syncthreads()` synchronizes threads **within the same block only**. Because a CUDA block has a hardware ceiling of 1024 threads, this kernel can reduce at most $2 \times 1024 = 2048$ elements.
+> 2. **Severe Warp Divergence:** The condition `threadIdx.x % stride == 0` causes thread divergence within warps. Even if only 1 thread in a warp of 32 is active, the entire warp must still be scheduled.
 > 
-> In the next section, we will implement the first CUDA kernel ($V_1$) and use **Thread Coarsening** and **Warp Shuffle** to resolve this imbalance.
+> To handle arbitrary array lengths ($n > 2048$), we must extend this into **Hierarchical Multi-Block Reduction**.
+
+
+---
+
+### 5. Hierarchical Reduction for Arbitrary Input Lengths 🌐
+
+In real-world applications, arrays contain millions of elements ($n \gg 2048$). Because `__syncthreads()` cannot synchronize across different blocks, we solve this with **Hierarchical Reduction**:
+
+1. **Partition:** Divide the array into independent chunks, assigning one chunk of $2 \times \text{blockSize}$ elements to each block.
+2. **Local Block Reduction:** Each block computes its own **partial sum** using tree reduction.
+3. **Global Accumulation:** Combine the partial sums into the final result.
+
+```
+Input Array: [ Chunk 0 ] [ Chunk 1 ] [ Chunk 2 ] ... [ Chunk Grid-1 ]
+                 │            │            │                  │
+           Block 0      Block 1      Block 2            Block Grid-1
+                 │            │            │                  │
+                 ▼            ▼            ▼                  ▼
+Partial Sums: [ sum_0 ]    [ sum_1 ]    [ sum_2 ]   ...    [ sum_k ]
+                 └────────────┴────────────┴──────────────────┘
+                                      │
+                        Final Sum (Host or atomicAdd)
+```
+
+#### Kernel Implementation (`V1_naive`)
+
+```cpp
+__global__ void reduceV1_naive(int *in, int *partial, int n) {
+    // Starting index of this block (each block handles 2 * blockDim.x elements)
+    int start = blockIdx.x * 2 * blockDim.x;
+    int i = start + 2 * threadIdx.x;
+
+    // Tree reduction inside the block
+    for (int stride = 1; stride <= blockDim.x; stride *= 2) {
+        if (threadIdx.x % stride == 0) {
+            // Guard boundary for arbitrary array sizes
+            if (i + stride < n) {
+                in[i] += in[i + stride];
+            }
+        }
+        __syncthreads();
+    }
+
+    // Thread 0 writes the block's partial sum
+    if (threadIdx.x == 0) {
+        partial[blockIdx.x] = in[start];
+    }
+}
+```
+
+#### Host-Side Launch Configuration
+To cover arbitrary array lengths $n$, calculate `gridSize` using ceiling division:
+
+$$
+\text{gridSize} = \left\lceil \frac{n}{2 \times \text{blockSize}} \right\rceil = \frac{n + 2 \times \text{blockSize} - 1}{2 \times \text{blockSize}}
+$$
+
+```cpp
+dim3 blockSize(512);
+dim3 gridSize((n + 2 * blockSize.x - 1) / (2 * blockSize.x));
+
+// Launch kernel to compute partial sums per block
+reduceV1_naive<<<gridSize, blockSize>>>(d_in, d_partial, n);
+
+// Copy partial sums back to Host and accumulate sequentially on CPU
+cudaMemcpy(h_partial, d_partial, gridSize.x * sizeof(int), cudaMemcpyDeviceToHost);
+int total_sum = 0;
+for (int b = 0; b < gridSize.x; b++) {
+    total_sum += h_partial[b];
+}
+```
+
+> [!WARNING]
+> **Pitfall: In-Place Reduction Destroys Input Data!**  
+> `in[i] += in[i + stride]` modifies the input array in-place. If benchmarking execution time across multiple iterations, you must restore the original input array (`cudaMemcpy`) **before each timed run**, otherwise subsequent runs will sum already-reduced values!
