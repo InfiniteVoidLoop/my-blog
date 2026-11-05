@@ -17,6 +17,8 @@ seriesOrder: 3
 
 **Linear Regression** is the simplest and most important starting point in Machine Learning. In this post, we apply it to a well-known benchmark: the [Kaggle House Prices](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques) competition, building the whole pipeline from scratch with **PyTorch**.
 
+![Linear Regression from Scratch with PyTorch](/posts/artificial-intelligent/linear-regression-from-scratch/index.png)
+
 ## Table of contents
 
 ---

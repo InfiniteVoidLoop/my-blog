@@ -18,6 +18,8 @@ Writing CUDA code is easy, but making it run faster than a CPU is hard. Without 
 
 This post covers **APOD (Assess $\rightarrow$ Parallelize $\rightarrow$ Optimize $\rightarrow$ Deploy)**, NVIDIA's standard optimization cycle, and applies it step-by-step to **Parallel Reduction**.
 
+![CUDA Parallel Execution and Optimization](/posts/parallel-programming/cuda-parallel-execution-and-optimization/index.png)
+
 ## Table of contents
 
 ## Quick Warm-up 🧠
@@ -421,6 +423,9 @@ Why $2 \times \text{stride}$? It acts as a **stride multiplier** so that lower-i
 - **`stride = 2`:** Step is $2 \times 2 = 4$. Thread 0 pairs $(0, 2)$, Thread 1 pairs $(4, 6)$.
 - **`stride = 4`:** Step is $2 \times 4 = 8$. Thread 0 pairs $(0, 4)$.
 
+![Compacted Active Thread Mapping](@/assets/images/parallel_programming/compacted-indexing-mapping.png)
+*Figure 5: V2 thread-to-data mapping packing active threads into the front.*
+
 Threads $0, 1, 2, \dots$ do all the work, while warps with higher thread IDs stay completely asleep.
 
 ---
@@ -480,7 +485,7 @@ i = \text{start} + \text{threadIdx.x}
 $$
 
 ![Sequential Addressing Reduction Tree](@/assets/images/parallel_programming/sequential-addressing-tree.png)
-*Figure 5: Sequential addressing reverses the stride so adjacent threads read adjacent memory words.*
+*Figure 6: Sequential addressing reverses the stride so adjacent threads read adjacent memory words.*
 
 #### Step-by-Step Example (4 Threads, 8 Numbers)
 Consider the example from Slide 54 with array `[1, 9, 5, 1, 6, 4, 7, 2]`:
@@ -574,7 +579,7 @@ Instead of creating millions of threads that die after one step, **Thread Coarse
 2. **Step 2 (Block Tree Reduction):** Once the data is condensed, threads run the tree reduction on just **one value per thread**.
 
 ![Thread Coarsening Concept](@/assets/images/parallel_programming/thread-coarsening-concept.png)
-*Figure 6: Thread coarsening aggregates multiple elements sequentially in private registers.*
+*Figure 7: Thread coarsening aggregates multiple elements sequentially in private registers.*
 
 > [!NOTE]
 > Accumulating in private registers requires **zero synchronization barriers** and **zero global memory writes**.
@@ -659,7 +664,7 @@ $$
 $$
 
 ![Warp Shuffle Operation](@/assets/images/parallel_programming/warp-shuffle-operation.png)
-*Figure 7: Intra-warp register-to-register value exchange via __shfl_down_sync.*
+*Figure 8: Intra-warp register-to-register value exchange via __shfl_down_sync.*
 
 - **Zero Memory Overhead:** Values travel directly from register to register without touching shared or global memory.
 - **Zero Barrier Stalls:** No `__syncthreads()` needed!
@@ -689,7 +694,7 @@ Once each block finishes reducing its portion, how do we aggregate the final sca
 | **Option C: GPU Atomic Add** | Block leader threads add directly into single global memory address | Hardware-serialized atomic contention |
 
 ![Atomics across Blocks](@/assets/images/parallel_programming/atomics-across-blocks.png)
-*Figure 8: Block leader threads atomically update a single global memory scalar.*
+*Figure 9: Block leader threads atomically update a single global memory scalar.*
 
 #### Why Atomics Win With Coarsening
 When we had 32,768 blocks in $V_1$, having 32,768 blocks write to one address caused heavy memory serialization.
