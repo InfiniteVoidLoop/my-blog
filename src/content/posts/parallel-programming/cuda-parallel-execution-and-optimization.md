@@ -333,3 +333,75 @@ $$
 - For example, reading $n = 2^{24}$ 32-bit integers ($16.7\text{ M elements}$) consumes $4n = 64\text{ MB}$.
 - Compare your achieved bandwidth against the GPU's theoretical limit (e.g. Tesla T4 peak is $\approx 320\text{ GB/s}$).
 - If your kernel hits **70–80% of peak bandwidth**, it is purely memory-bound and already near hardware perfection.
+
+
+---
+
+## 6. Assessing a GPU Kernel (APOD Cycle 2+) 🔍
+
+Once you have a working GPU version ($V_1$), how do you diagnose why it is not running at lightspeed?
+
+In the first cycle, you assessed CPU code. In subsequent cycles, **Assess means profiling your GPU kernel**. You must answer four diagnostic questions:
+
+```
+                  ┌───────────────────────────────┐
+                  │ Assessing a GPU Version (V_n) │
+                  └───────────────┬───────────────┘
+                                  │
+         ┌────────────────────────┼────────────────────────┐
+         ▼                        ▼                        ▼
+  Kernel or Copies?        Which Kernel?            Why is it Slow?
+(PCIe vs Compute bottleneck) (Finding the hotspot)   (Divergence? Idle lanes?
+                                                     Barriers? Bandwidth?)
+```
+
+---
+
+### The 4 Diagnostic Questions & What They Mean
+
+#### 1. Is the bottleneck in the Kernel or in Memory Copies?
+* **What it means:** Is your GPU spending more time actually crunching data inside kernels, or is it starved waiting for `cudaMemcpy` transfers across the slow PCIe bus?
+* **Example:**
+  ```
+  cudaMemcpy(HostToDevice):  45 ms   <--- 90% of total runtime!
+  kernel<<<grid, block>>>():  5 ms
+  cudaMemcpy(DeviceToHost):  40 ms
+  ```
+  If memory copies take 85 ms out of 90 ms, optimizing the kernel from 5 ms to 1 ms gives almost zero noticeable gain. You need to keep data on the GPU across multiple kernels or use unified memory/streams.
+
+#### 2. Which Kernel is the Culprit?
+* **What it means:** Real applications invoke dozens of kernels. Which specific kernel dominates the timeline?
+* **How to answer:** Use **Nsight Systems (`nsys`)** to print a summary table of all GPU operations:
+  ```shell
+  nsys profile --stats=true ./my_app
+  ```
+  Look at the `CUDA GPU Kernel Summary` column: target the kernel that takes $80\%$ of total GPU execution time first.
+
+#### 3. Why is the Kernel Slow? (Micro-Architecture Diagnosis)
+Once you isolate the hotspot kernel, inspect its hardware execution with **Nsight Compute (`ncu`)**:
+
+| Root Cause | What It Means | Concrete Example |
+| :--- | :--- | :--- |
+| **Warp Divergence** | Threads within the same warp take different branches, serializing execution. | An `if (threadIdx.x % 2 == 0)` split causes the warp to run at 50% efficiency. |
+| **Idle Threads** | Active warps have thread slots doing zero work (padded lanes or inactive threads). | In a tree reduction step, each round halves the active threads, leaving 90% of threads idling while consuming SM slots. |
+| **Barrier Stalls** | Threads sit stalled at `__syncthreads()` waiting for the slowest thread to finish. | Work inside the block is unbalanced; 1 thread does 1,000 iterations while 31 threads do 1 iteration, then wait at the barrier. |
+| **Far from Peak Bandwidth** | The kernel is memory-bound but accesses DRAM inefficiently (uncoalesced memory access). | A GPU with 320 GB/s peak bandwidth only achieves 25 GB/s because adjacent threads read non-consecutive memory addresses. |
+
+---
+
+### The Two-Tier Profiling Strategy: `nsys` $\rightarrow$ `ncu` 🛠️
+
+Never jump directly into micro-benchmarking without checking the big picture first:
+
+1. **Step 1: The Big Picture with Nsight Systems (`nsys`)**
+   - Answers: *What is the entire program doing over time (CPU vs PCIe copies vs GPU kernels)?*
+   ```shell
+   # Profile application and output terminal summary tables
+   nsys profile --stats=true -o global_report ./my_app
+   ```
+2. **Step 2: Deep-Dive with Nsight Compute (`ncu`)**
+   - Answers: *Why is this specific kernel slow? (Divergence, Speed-of-Light throughput, warp states).*
+   ```shell
+   # Profile only 1 launch of the target kernel with key metrics
+   ncu --section SpeedOfLight --section Occupancy --section WarpStateStats -k regex:myKernel -c 1 ./my_app
+   ```
