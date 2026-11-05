@@ -460,5 +460,279 @@ Using Nsight Compute (`ncu`) to measure active threads per warp instruction:
 | **$V_2$ (Compacted)** | **31.20 / 32** | **$\approx 97.5\%$** | **$\approx 2.5\%$** |
 
 > [!NOTE]
-> **Is $V_2$ dramatically faster?**  
-> In our benchmark, execution time improves from **1.81 ms** ($V_1$) to **1.67 ms** ($V_2$). While warp efficiency jumped to 97.5%, the speedup is moderate because calculating `i` adds extra arithmetic instructions, and accessing elements with strided steps introduces **shared memory bank conflicts**. This leads us to Round 2 ($V_3$)!
+> **Why is $V_2$ only slightly faster?**  
+> In our benchmark, execution time improves from **1.81 ms** ($V_1$) to **1.67 ms** ($V_2$). While warp efficiency jumped to 97.5%, the speedup is modest. Calculating `i` adds arithmetic overhead, but more critically, adjacent active threads access data spaced far apart (`2 * stride`), causing **non-coalesced memory loads** (and shared memory bank conflicts). This brings us to **$V_3$**!
+
+---
+
+#### The $V_3$ Breakthrough: Sequential Addressing
+To eliminate strided accesses, $V_3$ reverses the reduction tree:
+- Start with `stride = blockDim.x` and halve the stride at each step (`stride /= 2`) down to 1.
+- Each thread simply accesses its own contiguous index:
+
+$$
+i = \text{start} + \text{threadIdx.x}
+$$
+
+![Sequential Addressing Reduction Tree](@/assets/images/parallel_programming/sequential-addressing-tree.png)
+
+Because adjacent threads (`threadIdx.x = 0, 1, 2, ...`) read adjacent memory words (`i, i + 1, i + 2, ...`), memory requests are **fully coalesced** into single 32-byte cache line transactions!
+
+---
+
+#### Kernel Implementation (`V3_sequential`)
+
+```cpp
+__global__ void reduceBlksKernel3(int *in, int *out, int n) {
+    int start = blockIdx.x * 2 * blockDim.x;
+    int i = start + threadIdx.x;
+
+    // Reverse stride from half-block down to 1
+    for (int stride = blockDim.x; stride > 0; stride /= 2) {
+        if (threadIdx.x < stride) {
+            if (i + stride < n) {
+                in[i] += in[i + stride];
+            }
+        }
+        __syncthreads();
+    }
+
+    if (threadIdx.x == 0) {
+        atomicAdd(out, in[start]);
+    }
+}
+```
+
+---
+
+#### Profiler Evidence: Memory Coalescing in Action
+Comparing the hardware memory transactions in Nsight Compute:
+
+```shell
+ncu --metrics l1tex__t_requests_pipe_lsu_mem_global_op_ld.sum,\
+l1tex__t_sectors_pipe_lsu_mem_global_op_ld.sum \
+-k regex:"reduce.*" ./reduce 256
+```
+
+| Kernel Version | Load Requests | Sectors Fetched (32B) | Global Memory Traffic | Execution Time |
+| :--- | :---: | :---: | :---: | :---: |
+| **$V_1$ (Naive)** | 227,335 | 1,046,535 | High | 1.81 ms |
+| **$V_2$ (Compacted)** | 83,975 | 1,046,535 | High (identical to $V_1$) | 1.67 ms |
+| **$V_3$ (Sequential)** | **83,975** | **272,391** | **3.8× Less Traffic!** | **0.85 ms (2× faster!)** |
+
+> [!TIP]
+> **Key Insight:**  
+> $V_2$ fixed warp divergence but fetched the exact same memory sectors as $V_1$ because adjacent threads were reading far-apart addresses. $V_3$ fixed the memory layout: consecutive threads read consecutive bytes, cutting bus traffic by **$3.8\times$** and doubling execution speed!
+
+---
+
+### 7. Optimize Round 2: Thread Coarsening & Grid-Stride Loops ($V_4$) ⚙️
+
+#### Assessing $V_3$: Too Many Threads Doing Too Little
+While $V_3$ achieved an impressive $51.5\times$ speedup over CPU, a critical resource inefficiency remains:
+- **Massive thread count:** 1 thread per 2 elements means launching **8 million threads** (32,768 blocks) for $n = 16.7\text{M}$.
+- **Idle threads:** After step 1, 50% of threads are idle. After step 3, **87.5% of threads are idle**.
+- **High barrier overhead:** Each block executes 9 synchronization barriers (`__syncthreads()`) just to reduce 512 elements.
+- **Host burden:** The GPU produces 32,768 partial sums that must be transferred and summed.
+
+#### The Coarsening Concept: Do More Work in Registers
+Instead of creating millions of threads that die after one step, **Thread Coarsening** gives each thread multiple elements to sum locally before entering the tree:
+
+1. **Step 1 (Sequential Accumulation):** Each thread loops over multiple elements spaced by the grid stride and accumulates the sum in a **private register variable**.
+2. **Step 2 (Block Tree Reduction):** Once the data is condensed, threads run the tree reduction on just **one value per thread**.
+
+![Thread Coarsening Concept](@/assets/images/parallel_programming/thread-coarsening-concept.png)
+
+> [!NOTE]
+> Accumulating in private registers requires **zero synchronization barriers** and **zero global memory writes**.
+
+---
+
+#### The Grid-Stride Loop Pattern
+Rather than launching 32,768 blocks, we launch just enough blocks to saturate all Streaming Multiprocessors (SMs) on the GPU (e.g., $160$ blocks of 256 threads on Tesla T4):
+
+```cpp
+int gid = blockIdx.x * blockDim.x + threadIdx.x;
+int totalThreads = gridDim.x * blockDim.x;
+
+int sum = 0;
+// Each thread sums elements spaced by the entire grid width
+for (int k = gid; k < n; k += totalThreads) {
+    sum += in[k];
+}
+```
+
+- **Scalable:** Runs safely for arbitrary array sizes $n$ with any grid configuration.
+- **Coalesced:** In every iteration, thread $k$ and thread $k+1$ access contiguous memory addresses.
+- **Hardware-friendly:** Replaces 32,768 blocks with 160 persistent blocks.
+
+---
+
+#### Kernel Implementation (`V4_coarsened`)
+
+```cpp
+__global__ void reduceV4_coarsened(int *in, int *out, int n) {
+    extern __shared__ int sdata[];
+
+    int gid = blockIdx.x * blockDim.x + threadIdx.x;
+    int totalThreads = gridDim.x * blockDim.x;
+
+    // 1. Thread coarsening: accumulate multiple elements into a register
+    int sum = 0;
+    for (int k = gid; k < n; k += totalThreads) {
+        sum += in[k];
+    }
+
+    sdata[threadIdx.x] = sum;
+    __syncthreads();
+
+    // 2. Sequential addressing tree within shared memory
+    for (int stride = blockDim.x / 2; stride > 0; stride /= 2) {
+        if (threadIdx.x < stride) {
+            sdata[threadIdx.x] += sdata[threadIdx.x + stride];
+        }
+        __syncthreads();
+    }
+
+    // 3. Block leader writes result
+    if (threadIdx.x == 0) {
+        atomicAdd(out, sdata[0]);
+    }
+}
+```
+
+**Benchmark Result:** Execution time plunges from $0.85\text{ ms}$ down to **$0.325\text{ ms}$**! Throughput skyrockets to **$206.7\text{ GB/s}$** ($134.8\times$ speedup over CPU).
+
+---
+
+### 8. Optimize Round 3: Warp Shuffle & Eliminating Barriers ($V_5$) 🚀
+
+#### The Final Barrier Bottleneck
+In the final 5 steps of the block tree reduction (when `stride < 32`), all active threads reside inside **Warp 0** (threads $0$ through $31$).
+
+Yet, standard shared memory code still executes:
+- Multiple reads and writes to shared memory.
+- `__syncthreads()` barrier instructions at every single step!
+
+Because threads in a warp execute synchronously in lockstep, barriers within a single warp are completely redundant.
+
+---
+
+#### The Solution: Warp Shuffle (`__shfl_down_sync`)
+CUDA provides warp shuffle instructions that allow threads inside the same warp to read each other's register values directly across the SM crossbar network:
+
+$$
+\text{T } \_\_\text{shfl\_down\_sync}(\text{unsigned mask}, \text{T var}, \text{unsigned delta})
+$$
+
+![Warp Shuffle Operation](@/assets/images/parallel_programming/warp-shuffle-operation.png)
+
+- **Zero Memory Overhead:** Values travel directly from register to register without touching shared or global memory.
+- **Zero Barrier Stalls:** No `__syncthreads()` needed!
+
+```cpp
+inline __device__ int warpReduceSum(int val) {
+    for (int offset = 16; offset > 0; offset /= 2) {
+        val += __shfl_down_sync(0xffffffff, val, offset);
+    }
+    return val;
+}
+```
+
+Replacing shared memory reduction in Warp 0 with `warpReduceSum()` shaves off remaining latency, achieving **$0.324\text{ ms}$** and **$206.8\text{ GB/s}$**.
+
+---
+
+### 9. Optimize Round 4: Combining Block Results via Atomics ($V_6$) 🎯
+
+#### How Should We Combine Block Partials?
+Once each block finishes reducing its portion, how do we aggregate the final scalar result?
+
+| Option | Approach | Trade-off / Cost |
+| :--- | :--- | :--- |
+| **Option A: Host Finish** | Copy partials back to CPU and sum in a loop | High PCIe latency, slow serial CPU loop ($V_1$–$V_3$) |
+| **Option B: Second Kernel** | Launch another reduction kernel on the partial array | Kernel launch overhead |
+| **Option C: GPU Atomic Add** | Block leader threads add directly into single global memory address | Hardware-serialized atomic contention |
+
+![Atomics across Blocks](@/assets/images/parallel_programming/atomics-across-blocks.png)
+
+#### Why Atomics Win With Coarsening
+When we had 32,768 blocks in $V_1$, having 32,768 blocks write to one address caused heavy memory serialization.
+
+However, with **Thread Coarsening ($V_4$)**, we only launch **160 blocks**! Serializing 160 atomic additions takes less than $1\ \mu\text{s}$, completely obliterating the milliseconds spent copying partial arrays to the host:
+
+```cpp
+if (threadIdx.x == 0) {
+    atomicAdd(out, sdata[0]); // Only 160 atomic updates across the whole GPU!
+}
+```
+
+> [!CAUTION]
+> **Data Race Warning:**  
+> Never permit multiple threads inside the same block to write to the global accumulator simultaneously. Only designated leader threads (`threadIdx.x == 0`) should invoke `atomicAdd`.
+
+---
+
+### 10. Wrap-up: APOD Journey & The PCIe Reality Check 🏁
+
+#### Comprehensive Optimization Scorecard (Tesla T4)
+Benchmark results for reducing $n = 16,777,217$ integers ($67.11\text{ MB}$ of data) on NVIDIA Tesla T4 ($320\text{ GB/s}$ peak bandwidth):
+
+| Kernel Version | Optimization Strategy | Bottleneck Removed | Time (ms) | Effective BW | Speedup |
+| :--- | :--- | :--- | :---: | :---: | :---: |
+| **$V_0$ Host CPU** | Single-core C++ sequential loop | — | 43.76 ms | 1.5 GB/s | $1.0\times$ (ref) |
+| **$V_1$ Naive GPU** | Basic parallel reduction tree | Serial CPU loop | 1.635 ms | 41.0 GB/s | $26.8\times$ |
+| **$V_2$ Compact Threads** | Contiguous active thread indexing | Warp divergence | 1.621 ms | 41.4 GB/s | $27.0\times$ |
+| **$V_3$ Sequential Addr** | Reversed stride + contiguous layout | Strided uncoalesced memory | 0.849 ms | 79.0 GB/s | $51.5\times$ |
+| **$V_4$ Coarsened** | Grid-stride loop + registers | Idle threads & barrier stalls | 0.325 ms | 206.7 GB/s | $134.8\times$ |
+| **$V_5$ Warp Shuffle** | `__shfl_down_sync` register exchange | Shared memory & warp barriers | **0.324 ms** | **206.8 GB/s** | **$134.8\times$** |
+| **$V_6$ Atomics** | Block-level `atomicAdd` | Host partial collection | 0.330 ms | 203.6 GB/s | $132.8\times$ |
+| **NVIDIA CUB** | `cub::DeviceReduce::Sum` | Industrial reference | 0.394 ms | 170.4 GB/s | $111.1\times$ |
+
+---
+
+#### Approaching the Speed-of-Light (SOL)
+With $V_5$, our custom CUDA kernel achieved:
+
+$$
+\text{Effective Bandwidth} = \frac{16.78\text{M} \times 4\text{ bytes}}{0.324\text{ ms}} = 206.8\text{ GB/s}
+$$
+
+This represents **$64.6\%$** of the theoretical physical ceiling ($320\text{ GB/s}$) and comfortably outpaces NVIDIA's heavily tuned CUB library ($170.4\text{ GB/s}$) for this workload size.
+
+---
+
+#### The PCIe Reality Check: Amdahl's Law Strikes Back!
+Before celebrating a $135\times$ speedup, examine the end-to-end wall clock time:
+
+```
+[ CPU Sequential Sum ] ======================================> 43.7 ms
+
+[ GPU Execution Flow ]
+|-- PCIe H2D Copy (14.8 ms) --|-- Kernel (0.32 ms) --|-- D2H Copy (0.01 ms) --|
+Total GPU Wall-Clock = 15.1 ms
+```
+
+| Component | Time (ms) | Percentage of Total Time |
+| :--- | :---: | :---: |
+| **PCIe Transfer (Host $\rightarrow$ Device)** | 14.8 ms | **97.9%** |
+| **Optimized GPU Kernel ($V_5$)** | 0.32 ms | **2.1%** |
+| **Total GPU End-to-End** | **15.1 ms** | **100.0%** |
+
+> [!WARNING]
+> **The Real-World Lesson:**  
+> While the kernel itself is **$135\times$ faster** than the CPU, the overall application is only **$\approx 3\times$ faster** ($15.1\text{ ms}$ vs $43.7\text{ ms}$) because PCIe transfer consumes $98\%$ of the total runtime!  
+> To unlock the full power of GPUs:
+> 1. **Keep data on device:** Chain multiple GPU operations together so data stays in VRAM.
+> 2. **Overlap transfers:** Use CUDA Streams and Pinned (`cudaHostAlloc`) memory to overlap compute with PCIe copies.
+
+---
+
+#### Summary Checklist: The APOD Engineering Takeaway
+1. **Never guess—profile first:** Use `nsys` for system-level timelines and `ncu` for warp-level micro-architecture bottlenecks.
+2. **Eliminate Warp Divergence:** Ensure warps are either 100% active or 100% idle.
+3. **Coalesce Memory Accesses:** Ensure adjacent threads access adjacent 4-byte words to utilize all 32 bytes of every memory sector.
+4. **Coarsen Threads:** Don't launch millions of short-lived threads; use grid-stride loops to accumulate values locally in registers with zero synchronization cost.
+5. **Leverage Warp-Level Primitives:** Replace intra-warp shared memory and `__syncthreads()` with fast register shuffles (`__shfl_down_sync`).
+6. **Aggregate with Atomics:** When thread count is kept compact, GPU `atomicAdd` is far faster than offloading aggregation to the CPU.
+
