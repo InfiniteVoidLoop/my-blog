@@ -16,7 +16,7 @@ seriesOrder: 4
 ---
 Writing CUDA code is easy, but making it run faster than a CPU is hard. Without a structured workflow, developers often optimize the wrong code or introduce subtle bugs.
 
-This post covers **APOD (Assess $\rightarrow$ Parallelize $\rightarrow$ Optimize $\rightarrow$ Deploy)**, NVIDIA's standard optimization cycle, and applies it to **Parallel Reduction**.
+This post covers **APOD (Assess $\rightarrow$ Parallelize $\rightarrow$ Optimize $\rightarrow$ Deploy)**, NVIDIA's standard optimization cycle, and applies it step-by-step to **Parallel Reduction**.
 
 ## Table of contents
 
@@ -73,58 +73,45 @@ else
 
 ---
 
-## 1. Why Do We Need a Process? 🛠️
+## Part 1: The APOD Engineering Process 🔄
 
-Many developers rewrite a CPU loop in CUDA only to find:
+Professional GPU optimization is not guesswork—it is a repeatable engineering loop.
+
+### 1. Why Do We Need a Process?
+Developers rewriting CPU loops in CUDA often hit common traps:
 - The GPU version runs **slower than single-threaded CPU code**.
 - Days are spent optimizing a kernel that takes only **2% of total runtime**.
-- Code runs fast but produces **wrong results** on certain input sizes.
+- Fast code produces **wrong results** on edge-case inputs.
 
-These issues happen due to:
+These stem from four mistakes:
 1. **Guessing instead of measuring.**
 2. **Optimizing the wrong bottleneck.**
 3. **Changing too many variables at once.**
 4. **Skipping correctness checks.**
 
-To solve this, we use the **APOD Cycle**.
-
 ---
 
-## 2. The APOD Cycle 🔄
-
-APOD is a repeating cycle for performance engineering:
+### 2. The 4 Stages of the APOD Cycle
 
 ![The APOD Cycle](@/assets/images/parallel_programming/apod-cycle.png)
-*Figure 1: The APOD optimization cycle.*
+*Figure 1: The cyclic APOD optimization workflow.*
 
-- **Assess:** Profile code, identify bottlenecks, and calculate potential gains.
-- **Parallelize:** Write the simplest correct GPU kernel (1 thread per output).
-- **Optimize:** Measure $\rightarrow$ find the limiter $\rightarrow$ change **one thing** $\rightarrow$ verify speedup.
-- **Deploy:** Validate with real-world data and ship early. A $3\times$ speedup shipped today is better than an unfinished $30\times$ optimization.
+- **Assess:** Profile code, identify hotspots, and estimate possible gains.
+- **Parallelize:** Build the simplest working GPU kernel (1 thread per output). Correctness first.
+- **Optimize:** Measure $\rightarrow$ identify limiter $\rightarrow$ change **one thing** $\rightarrow$ verify speedup.
+- **Deploy:** Validate on production data and ship gains early ($3\times$ shipped beats $30\times$ unfinished).
 
 ---
 
-## 3. Assess & Amdahl's Law ⏱️
-
-Before writing CUDA code, ask:
-1. **Where is the hotspot?**
-2. **Can it run in parallel?** (independent iterations, associative math).
-3. **Is the dataset large enough?** (PCIe transfer overhead will dominate small data).
-
-### Amdahl's Law
-
-Overall speedup is strictly limited by the **serial (CPU-only) portion**:
+### 3. Assess & Amdahl's Law
+Before writing CUDA, evaluate the theoretical ceiling. Amdahl's Law states that program speedup is strictly limited by its **serial (unparallelized) fraction**:
 
 $$
-S(N) = \frac{1}{(1 - P) + \frac{P}{N}}
+S(N) = \frac{1}{(1 - P) + \frac{P}{N}} \qquad S_{\max} = \frac{1}{1 - P}
 $$
 
-$$
-S_{\max} = \frac{1}{1 - P}
-$$
-
-- $P$: Fraction of execution time that can be parallelized.
-- $1 - P$: Serial fraction (file I/O, CPU prep).
+- $P$: Parallelizable fraction of execution time.
+- $1 - P$: Serial fraction (file I/O, sequential CPU work).
 - $N$: Speedup of the parallelized portion.
 
 | Parallel Fraction ($P$) | Speedup ($N = 10\times$) | Speedup ($N = 100\times$) | Infinite Cores ($N = \infty$) |
@@ -134,39 +121,15 @@ $$
 | **99%** | $9.2\times$ | $50.3\times$ | **$100.0\times$** |
 
 > [!WARNING]
-> If $50\%$ of your program is serial, the entire application can **never exceed a $2\times$ speedup**, even on an infinite GPU.
-
-#### The 40× Trap Example
-A program takes 100 seconds: 80s in `filter()`, 20s in file I/O. If CUDA makes `filter()` **$40\times$ faster**:
-- New time: $20\text{s} + \frac{80\text{s}}{40} = 22\text{s}$.
-- Overall speedup: $\frac{100\text{s}}{22\text{s}} \approx \mathbf{4.5\times}$.
-- Maximum possible speedup ($N = \infty$): $\frac{100\text{s}}{20\text{s}} = \mathbf{5.0\times}$.
-
-A $40\times$ kernel only gives a $4.5\times$ application speedup. Always measure end-to-end time.
+> **The 40× Trap:** If an image pipeline spends 80s in `filter()` and 20s in file I/O (total 100s), speeding up `filter()` by **$40\times$** on GPU reduces its time to 2s. The new total time is $20\text{s} + 2\text{s} = 22\text{s}$, giving only a **$4.5\times$ application speedup**.
 
 ---
 
-## 4. Assessing a GPU Kernel (Cycle 2+) 🔍
+### 4. Profiling Cheatsheet & Key Metrics 💻
 
-In later cycles, **Assess means profiling your GPU kernel**:
+Never guess—use standard profiling tools to answer specific questions:
 
-### The 4 Diagnostic Questions
-1. **Kernel or Copies?** If `cudaMemcpy` takes 90% of the runtime, optimizing the kernel will not help. Keep data on the GPU.
-2. **Which Kernel?** Find the kernel consuming the most execution time.
-3. **Why is it Slow?**
-   - **Warp Divergence:** Threads in a warp take different branches, forcing serial execution.
-   - **Idle Threads:** Threads sit inactive during computation.
-   - **Barrier Stalls:** Threads wait too long at `__syncthreads()`.
-   - **Low Memory Bandwidth:** Uncoalesced global memory access wastes bus throughput.
-4. **Is it Close to Peak Bandwidth?** If effective bandwidth hits 70–80% of hardware peak, the kernel is already memory-bound and near optimal.
-
----
-
-## 5. Profiling Tools Cheatsheet 💻
-
-### 1. Timing (`cudaEvent`)
-CPU timers (`std::chrono`) only measure kernel launch overhead unless synchronized. Always use `cudaEvent` with a warm-up launch:
-
+#### Measuring Accurate Time (`cudaEvent`)
 ```cpp
 cudaEvent_t start, stop;
 cudaEventCreate(&start); cudaEventCreate(&stop);
@@ -183,89 +146,65 @@ float ms = 0.0f;
 cudaEventElapsedTime(&ms, start, stop);
 ```
 
-### 2. Nsight Systems (`nsys`): Application Timeline
-Answers: *Where does the program spend its time across CPU, PCIe copies, and GPU kernels?*
-
+#### Application vs Kernel Profiling CLI
 ```shell
+# 1. Nsight Systems: Whole-program timeline (CPU, PCIe copies, GPU kernels)
 nsys profile --stats=true -o app_report ./my_app
 nsys stats app_report.nsys-rep
-```
 
-### 3. Nsight Compute (`ncu`): Kernel Analysis
-Answers: *Why is a specific kernel slow?*
-
-```shell
-# Profile 1 launch of a specific kernel with key sections
+# 2. Nsight Compute: Single-kernel hardware diagnostics
 ncu --section SpeedOfLight --section Occupancy --section WarpStateStats -k regex:myKernel -c 1 ./my_app
-
-# Query key metrics directly in the terminal
-ncu --metrics gpu__time_duration.sum,\
-smsp__thread_inst_executed_per_inst_executed.ratio,\
-smsp__sass_average_branch_targets_threads_uniform.pct,\
-sm__warps_active.avg.pct_of_peak_sustained_active,\
-dram__bytes_read.sum.per_second \
--k regex:myKernel -c 1 ./my_app
 ```
 
-| Metric | What It Measures | Target |
+#### Essential Metrics & Formulas
+| Question | Hardware Metric | Target |
 | :--- | :--- | :--- |
-| `gpu__time_duration.sum` | Kernel execution time | Lower is better |
-| `smsp__thread_inst_executed_per_inst_executed.ratio` | Active threads per warp instruction | **32.0** (no divergence) |
-| `smsp__sass_average_branch_targets_threads_uniform.pct` | Branches where all threads take the same path | **100%** |
-| `sm__warps_active.avg.pct_of_peak_sustained_active` | Achieved occupancy | **75–100%** for memory-bound kernels |
-| `dram__bytes_read.sum.per_second` | DRAM read bandwidth | Compare to GPU peak (e.g. 320 GB/s on T4) |
-
-### 4. Speedup & Effective Bandwidth Formulas
+| **Are threads diverging?** | `smsp__thread_inst_executed_per_inst_executed.ratio` | **32.0** (no divergence) |
+| **Are branches uniform?** | `smsp__sass_average_branch_targets_threads_uniform.pct` | **100%** |
+| **Is the SM occupied?** | `sm__warps_active.avg.pct_of_peak_sustained_active` | **75–100%** |
+| **DRAM bandwidth achieved?** | `dram__bytes_read.sum.per_second` | Compare to GPU peak (320 GB/s on T4) |
 
 $$
-\text{Speedup} = \frac{T_{\text{baseline}}}{T_{\text{new}}}
-$$
-
-$$
-\text{Effective Bandwidth (GB/s)} = \frac{\text{Bytes Read} + \text{Bytes Written}}{\text{Time (seconds)} \times 10^9}
+\text{Speedup} = \frac{T_{\text{baseline}}}{T_{\text{new}}} \qquad \text{Effective Bandwidth (GB/s)} = \frac{\text{Bytes Read} + \text{Bytes Written}}{\text{Time (seconds)} \times 10^9}
 $$
 
 ---
 
-## 6. The APOD Optimization Log 📝
+### 5. The APOD Optimization Log 📝
+Track every optimization round with **one hypothesis and one change at a time**:
 
-Keep an optimization log for every change. Only change **one variable at a time**:
-
-| Version | Change (Only One!) | Hypothesis | Time (ms) | Speedup vs CPU | Effective Bandwidth | Correct? | Decision |
-| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **$V_0$** | CPU Baseline | Single-threaded reference | 47.2 ms | $1.0\times$ | 1.4 GB/s | Reference | Keep |
-| **$V_1$** | Basic Tree Reduction | First parallel version | 1.81 ms | $26.1\times$ | 37.1 GB/s | Pass | Keep |
-| **$V_2$** | Interleaved Addressing | Reduce warp divergence | 1.67 ms | $28.2\times$ | 40.1 GB/s | Pass | Keep |
-| **$V_3$** | Sequential Addressing | Eliminate bank conflicts | 0.89 ms | $52.8\times$ | 75.4 GB/s | Pass | Keep |
-| **$V_4$** | Thread Coarsening | Process multiple elements per thread | ? ms | ? $\times$ | ? GB/s | ? | Keep / Revert |
-| **$V_5$** | Warp Shuffle | Register-to-register reduction | ? ms | ? $\times$ | ? GB/s | ? | Keep / Revert |
+| Version | Change (Only One!) | Hypothesis | Time (ms) | Speedup vs CPU | Effective Bandwidth | Decision |
+| :---: | :--- | :--- | :---: | :---: | :---: | :---: |
+| **$V_0$** | CPU Baseline | Single-threaded reference | 47.2 ms | $1.0\times$ | 1.4 GB/s | Ground Truth |
+| **$V_1$** | Basic Tree Reduction | First parallel version | 1.81 ms | $26.1\times$ | 37.1 GB/s | Keep |
+| **$V_2$** | Interleaved Addressing | Reduce warp divergence | 1.67 ms | $28.2\times$ | 40.1 GB/s | Keep |
+| **$V_3$** | Sequential Addressing | Eliminate bank conflicts | 0.89 ms | $52.8\times$ | 75.4 GB/s | Keep |
+| **$V_4$** | Thread Coarsening | Process multiple elements per thread | ? ms | ? $\times$ | ? GB/s | Keep / Revert |
+| **$V_5$** | Warp Shuffle | Register-to-register reduction | ? ms | ? $\times$ | ? GB/s | Keep / Revert |
 
 ---
 
-## 7. Parallel Reduction: The Task 🧩
+## Part 2: Parallel Reduction Through APOD 🧩
 
-A **Reduction** condenses an array of $n$ elements into a single scalar value:
-- **Sum:** $\sum x_i$ (identity: $0$)
-- **Product:** $\prod x_i$ (identity: $1$)
-- **Min / Max:** $\min x_i$ or $\max x_i$ (identity: $+\infty$ / $-\infty$)
+Now we apply APOD to optimize array summation across multiple rounds.
 
-$$
-\text{acc} = \text{IDENTITY}
-$$
+### 1. The Reduction Task & General Form
+A **Reduction** combines an array of $n$ elements into a single scalar value using an associative binary operator:
 
 $$
-\text{for } i \in [0, n - 1]: \quad \text{acc} = \text{Operator}(\text{acc}, \text{input}[i])
+\text{acc} = \text{IDENTITY} \qquad \text{for } i \in [0, n - 1]: \quad \text{acc} = \text{Operator}(\text{acc}, \text{input}[i])
 $$
+
+- **Sum:** $\sum x_i$ (identity: $0$, operator: $+$)
+- **Product:** $\prod x_i$ (identity: $1$, operator: $\times$)
+- **Min / Max:** $\min x_i$ or $\max x_i$ (identity: $\pm\infty$)
 
 > [!IMPORTANT]
-> A reduction can only be parallelized if its operator is **associative**:  
-> $(a + b) + c = a + (b + c)$.
+> A reduction can only run in parallel if the operator is **associative**: $(a + b) + c = a + (b + c)$.
 
 ---
 
-## 8. Assess Baseline: Sequential CPU Reduction ($V_0$) ⏱️
-
-### CPU Code
+### 2. Assess: Sequential CPU Baseline ($V_0$)
 ```cpp
 int reduceOnHost(int *in, int n) {
     int s = in[0];
@@ -276,29 +215,24 @@ int reduceOnHost(int *in, int n) {
 }
 ```
 
-- **Time:** $n - 1$ steps $\rightarrow \mathcal{O}(n)$.
-- **Work:** $n - 1$ additions $\rightarrow \mathcal{O}(n)$.
-
-### Hardware Baseline & Target Limit
+- **Complexity:** $n - 1$ steps $\rightarrow \mathcal{O}(n)$ time, $n - 1$ additions $\rightarrow \mathcal{O}(n)$ work.
 - **Dataset:** $n = 16,777,217$ ints ($2^{24} + 1 \approx 67.1\text{ MB}$).
-- **CPU time:** $\approx 47.2\text{ ms}$.
-- **Workload nature:** Memory-bound (only 1 addition per 4 bytes loaded).
-- **GPU Speed-of-Light target (Tesla T4 peak 320 GB/s):**
+- **CPU time ($V_0$):** $\approx 47.2\text{ ms}$.
+- **Hardware Speed-of-Light target (Tesla T4 peak 320 GB/s):**
 
 $$
 T_{\text{ideal}} \approx \frac{67.1\text{ MB}}{320\text{ GB/s}} \approx \mathbf{0.21\text{ ms}}
 $$
 
-Our optimization goal is to get as close to $0.21\text{ ms}$ as possible.
+Our optimization goal is to push kernel execution toward this $0.21\text{ ms}$ ceiling.
 
 ---
 
-## 9. Parallel Reduction Tree: The Numbers 📊
-
-Instead of adding numbers one by one, a parallel reduction uses a **tree structure** (similar to a tournament bracket):
+### 3. Parallelize: The Reduction Tree Concept
+Instead of adding numbers sequentially, threads pair up elements in a binary tree:
 
 ```
-Step 1:  [1 + 9]    [5 + 1]    [6 + 4]    [7 + 2]   -> 4 additions
+Step 1:  [1 + 9]    [5 + 1]    [6 + 4]    [7 + 2]   -> 4 additions (half threads active)
            10          6          10         9
 Step 2:       [10 + 6]               [10 + 9]       -> 2 additions
                  16                     19
@@ -306,20 +240,18 @@ Step 3:                 [16 + 19]                   -> 1 addition
                            35
 ```
 
-For $N$ elements:
-1. **Total Work:** $\frac{N}{2} + \frac{N}{4} + \dots + 1 = \mathbf{N - 1\text{ additions}}$.
-   - Matches the CPU work $\rightarrow$ **Work-efficient**.
-2. **Execution Steps:** $\mathbf{\log_2(N)\text{ steps}}$.
-   - For $N = 1,000,000$, it takes only **20 steps** (compared to 1,000,000 on CPU).
-3. **Peak Resource Demand:** $\frac{N}{2} = \mathbf{500,000\text{ threads}}$ at Step 1.
-4. **Average Parallelism:**
+#### The Numbers Behind the Tree
+- **Total Work:** $\frac{N}{2} + \frac{N}{4} + \dots + 1 = \mathbf{N - 1\text{ additions}}$ (Work-efficient).
+- **Execution Steps:** $\mathbf{\log_2(N)\text{ steps}}$ (For $N = 1,000,000$, only 20 steps vs 1,000,000 on CPU).
+- **Peak Resource Demand:** $\frac{N}{2} = \mathbf{500,000\text{ threads}}$ at Step 1.
+- **Average Parallelism:**
 
 $$
 \text{Average Parallelism} = \frac{N - 1}{\log_2(N)} \approx \frac{1,000,000}{20} = \mathbf{50,000\text{ threads}}
 $$
 
 > [!WARNING]
-> **Why the Naive Tree is Inefficient:**
-> Step 1 needs 500,000 threads, but Step 2 only needs 250,000, and the final step needs only 1 thread. Up to **90% of threads sit idle in later stages**.
+> **The Resource Inefficiency Bottleneck:**
+> While Step 1 needs 500,000 threads, subsequent steps cut active threads in half each time. In later steps, **over 90% of threads sit idle** while still reserving registers and SM slots.
 > 
-> In upcoming sections, we will use **Thread Coarsening** and **Warp Shuffle** to solve this hardware utilization bottleneck.
+> In the next section, we will implement the first CUDA kernel ($V_1$) and use **Thread Coarsening** and **Warp Shuffle** to resolve this imbalance.
