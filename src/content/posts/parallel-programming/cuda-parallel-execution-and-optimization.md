@@ -393,15 +393,97 @@ Once you isolate the hotspot kernel, inspect its hardware execution with **Nsigh
 
 Never jump directly into micro-benchmarking without checking the big picture first:
 
-1. **Step 1: The Big Picture with Nsight Systems (`nsys`)**
-   - Answers: *What is the entire program doing over time (CPU vs PCIe copies vs GPU kernels)?*
-   ```shell
-   # Profile application and output terminal summary tables
-   nsys profile --stats=true -o global_report ./my_app
-   ```
-2. **Step 2: Deep-Dive with Nsight Compute (`ncu`)**
-   - Answers: *Why is this specific kernel slow? (Divergence, Speed-of-Light throughput, warp states).*
-   ```shell
-   # Profile only 1 launch of the target kernel with key metrics
-   ncu --section SpeedOfLight --section Occupancy --section WarpStateStats -k regex:myKernel -c 1 ./my_app
-   ```
+1. **Step 1: The Big Picture with Nsight Systems (`nsys`)** $\rightarrow$ *What is the entire application doing over time (CPU vs PCIe copies vs GPU kernels)?*
+2. **Step 2: Deep-Dive with Nsight Compute (`ncu`)** $\rightarrow$ *Why is this specific kernel slow? (Divergence, Occupancy, Memory Bandwidth).*
+
+---
+
+## 7. Profiling Cheatsheet: Commands & Key Metrics 💻
+
+To keep your terminal workflow clean and organized, here is the complete reference for all profiling commands and CLI metrics in one place:
+
+### 1. Nsight Systems (`nsys`): Whole-Program Timeline
+
+```shell
+# Profile the whole program and print summary tables directly to terminal
+nsys profile --stats=true -o app_report ./my_app
+
+# Re-inspect tables later from the generated report file
+nsys stats app_report.nsys-rep
+```
+
+The output gives three vital tables:
+- **`CUDA GPU Kernel Summary`:** Total & average time per kernel to find the biggest hotspot.
+- **`CUDA GPU MemOps Summary`:** Time spent in `cudaMemcpy` (Host-to-Device vs Device-to-Host).
+- **`CUDA API Summary`:** Host CPU time spent managing CUDA runtime calls.
+
+### 2. Nsight Compute (`ncu`): Kernel-Level Deep Dive
+
+```shell
+# 1. Profile 1 launch of a specific kernel with key sections
+ncu --section SpeedOfLight --section Occupancy --section WarpStateStats -k regex:myKernel -c 1 ./my_app
+
+# 2. Profile targeted metrics directly in the terminal
+ncu --metrics gpu__time_duration.sum,\
+smsp__thread_inst_executed_per_inst_executed.ratio,\
+smsp__sass_average_branch_targets_threads_uniform.pct,\
+sm__warps_active.avg.pct_of_peak_sustained_active,\
+dram__bytes_read.sum.per_second \
+-k regex:myKernel -c 1 ./my_app
+
+# 3. Collect a full report to inspect in the GUI
+ncu --set full -o kernel_report -k regex:myKernel -c 1 ./my_app
+ncu --import kernel_report.ncu-rep --page details
+```
+
+### Essential `ncu` Metrics Mapping
+
+| Question | Hardware Metric | What Value to Look For |
+| :--- | :--- | :--- |
+| **How long does the kernel run?** | `gpu__time_duration.sum` | Lower is faster (nanoseconds / microseconds). |
+| **Are threads diverging?** | `smsp__thread_inst_executed_per_inst_executed.ratio` | **32.0** = perfect execution (no divergence). Closer to 1.0 means severe divergence. |
+| **What % of branches are uniform?** | `smsp__sass_average_branch_targets_threads_uniform.pct` | **100%** = all 32 threads take the exact same branch together. |
+| **How well is the SM occupied?** | `sm__warps_active.avg.pct_of_peak_sustained_active` | **75–100%** for memory-bound kernels. |
+| **What DRAM throughput is achieved?** | `dram__bytes_read.sum.per_second` | Compare with GPU peak (e.g. 320 GB/s on T4). |
+
+---
+
+## 8. The APOD Optimization Log: Tracking Every Version 📝
+
+In performance engineering, memory is fleeting. NVIDIA recommends maintaining an **APOD Log table** for every project and lab.
+
+Each row represents **exactly one hypothesis and one code change**:
+
+| Version | Change (Only One!) | Hypothesis ("...because...") | Time (ms) | Speedup vs CPU | Effective Bandwidth | Correct? | Decision |
+| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **$V_0$** | Sequential CPU Baseline | Single-threaded reference | 82.4 ms | $1.0\times$ | 0.8 GB/s | Reference | Keep (Ground Truth) |
+| **$V_1$** | Naive Tree Reduction | Basic shared-memory tree | 8.2 ms | $10.0\times$ | 7.8 GB/s | Pass | Keep (First GPU build) |
+| **$V_2$** | Interleaved Addressing | Remove warp divergence | ? ms | ? $\times$ | ? GB/s | ? | Keep / Revert |
+| **$V_3$** | Sequential Addressing | Eliminate bank conflicts | ? ms | ? $\times$ | ? GB/s | ? | Keep / Revert |
+| **$V_4$** | Thread Coarsening | Process 2+ elements per thread to increase ILP | ? ms | ? $\times$ | ? GB/s | ? | Keep / Revert |
+| **$V_5$** | Warp Shuffle | Register-to-register reduction (`__shfl_down_sync`) | ? ms | ? $\times$ | ? GB/s | ? | Keep / Revert |
+| **$V_6$** | Grid-Level Atomics | Atomic accumulation across all blocks | ? ms | ? $\times$ | ? GB/s | ? | Keep / Revert |
+
+---
+
+## 9. Next: Applying APOD to Our First Real Pattern — Parallel Reduction 🚀
+
+Now that our systematic APOD framework and profiling toolkit are in place, we are ready to apply it to our first foundational parallel programming pattern: **Parallel Reduction**.
+
+### The Task: Array Summation
+Given an array `in` of $n$ elements, compute their aggregate sum:
+
+$$
+\text{Output} = \sum_{i=0}^{n-1} \text{in}[i]
+$$
+
+```
+Input:  [ 1,  9,  5,  1,  6,  4,  7,  2 ]  (n = 8)
+                 ▼  Reduction (Sum)
+Output: 35
+```
+
+While summing numbers sounds trivial on a CPU, doing it efficiently across tens of thousands of GPU threads requires solving **warp divergence**, **shared memory bank conflicts**, **instruction-level parallelism (ILP)**, and **cross-warp communication**.
+
+In Part 2, we will climb the optimization ladder from $V_0$ to $V_6$, comparing every single step in our APOD log!
+
