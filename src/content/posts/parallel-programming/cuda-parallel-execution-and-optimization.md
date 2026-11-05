@@ -176,11 +176,12 @@ Track every optimization round with **one hypothesis and one change at a time**:
 | Version | Change (Only One!) | Hypothesis | Time (ms) | Speedup vs CPU | Effective Bandwidth | Decision |
 | :---: | :--- | :--- | :---: | :---: | :---: | :---: |
 | **$V_0$** | CPU Baseline | Single-threaded reference | 47.2 ms | $1.0\times$ | 1.4 GB/s | Ground Truth |
-| **$V_1$** | Basic Tree Reduction | First parallel version | 1.81 ms | $26.1\times$ | 37.1 GB/s | Keep |
-| **$V_2$** | Interleaved Addressing | Reduce warp divergence | 1.67 ms | $28.2\times$ | 40.1 GB/s | Keep |
-| **$V_3$** | Sequential Addressing | Eliminate bank conflicts | 0.89 ms | $52.8\times$ | 75.4 GB/s | Keep |
-| **$V_4$** | Thread Coarsening | Process multiple elements per thread | ? ms | ? $\times$ | ? GB/s | Keep / Revert |
-| **$V_5$** | Warp Shuffle | Register-to-register reduction | ? ms | ? $\times$ | ? GB/s | Keep / Revert |
+| **$V_1$** | Basic Tree Reduction | First parallel version | 1.81 ms | $26.1\times$ | 37.1 GB/s | Baseline GPU |
+| **$V_2$** | Compact Active Threads | Eliminate warp divergence | 1.67 ms | $28.2\times$ | 40.1 GB/s | Keep |
+| **$V_3$** | Sequential Addressing | Enable coalesced memory reads | 0.89 ms | $52.8\times$ | 75.4 GB/s | Keep (2× gain) |
+| **$V_4$** | Thread Coarsening | Grid-stride loop + registers | 0.325 ms | $134.8\times$ | 206.7 GB/s | Keep (3× gain) |
+| **$V_5$** | Warp Shuffle | Register exchange via `__shfl_down_sync` | 0.324 ms | $134.8\times$ | 206.8 GB/s | Keep |
+| **$V_6$** | Block Atomics | GPU `atomicAdd` across blocks | 0.330 ms | $132.8\times$ | 203.6 GB/s | Keep |
 
 ---
 
@@ -325,7 +326,7 @@ In real-world applications, arrays contain millions of elements ($n \gg 2048$). 
 3. **Global Accumulation:** Combine the partial sums into the final result.
 
 ![Hierarchical Reduction for Bigger Inputs](@/assets/images/parallel_programming/hierarchical-reduction.png)
-*Figure 2: Hierarchical reduction partitioning input into blocks to produce partial sums.*
+*Figure 4: Hierarchical reduction partitioning input into blocks to produce partial sums.*
 
 #### Kernel Implementation (`V1_naive`)
 
@@ -479,6 +480,7 @@ i = \text{start} + \text{threadIdx.x}
 $$
 
 ![Sequential Addressing Reduction Tree](@/assets/images/parallel_programming/sequential-addressing-tree.png)
+*Figure 5: Sequential addressing reverses the stride so adjacent threads read adjacent memory words.*
 
 #### Step-by-Step Example (4 Threads, 8 Numbers)
 Consider the example from Slide 54 with array `[1, 9, 5, 1, 6, 4, 7, 2]`:
@@ -572,6 +574,7 @@ Instead of creating millions of threads that die after one step, **Thread Coarse
 2. **Step 2 (Block Tree Reduction):** Once the data is condensed, threads run the tree reduction on just **one value per thread**.
 
 ![Thread Coarsening Concept](@/assets/images/parallel_programming/thread-coarsening-concept.png)
+*Figure 6: Thread coarsening aggregates multiple elements sequentially in private registers.*
 
 > [!NOTE]
 > Accumulating in private registers requires **zero synchronization barriers** and **zero global memory writes**.
@@ -656,6 +659,7 @@ $$
 $$
 
 ![Warp Shuffle Operation](@/assets/images/parallel_programming/warp-shuffle-operation.png)
+*Figure 7: Intra-warp register-to-register value exchange via __shfl_down_sync.*
 
 - **Zero Memory Overhead:** Values travel directly from register to register without touching shared or global memory.
 - **Zero Barrier Stalls:** No `__syncthreads()` needed!
@@ -685,6 +689,7 @@ Once each block finishes reducing its portion, how do we aggregate the final sca
 | **Option C: GPU Atomic Add** | Block leader threads add directly into single global memory address | Hardware-serialized atomic contention |
 
 ![Atomics across Blocks](@/assets/images/parallel_programming/atomics-across-blocks.png)
+*Figure 8: Block leader threads atomically update a single global memory scalar.*
 
 #### Why Atomics Win With Coarsening
 When we had 32,768 blocks in $V_1$, having 32,768 blocks write to one address caused heavy memory serialization.
