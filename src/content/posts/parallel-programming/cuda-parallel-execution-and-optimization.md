@@ -465,10 +465,14 @@ Using Nsight Compute (`ncu`) to measure active threads per warp instruction:
 
 ---
 
-#### The $V_3$ Breakthrough: Sequential Addressing
-To eliminate strided accesses, $V_3$ reverses the reduction tree:
-- Start with `stride = blockDim.x` and halve the stride at each step (`stride /= 2`) down to 1.
-- Each thread simply accesses its own contiguous index:
+#### The $V_3$ Breakthrough: Sequential Addressing (Slide 54)
+
+In $V_2$, active threads were grouped together, but they still read numbers spaced far apart. This caused **uncoalesced memory access** — the GPU fetched 32 bytes from memory just to use one 4-byte number!
+
+$V_3$ solves this by **reversing the reduction tree**:
+1. Start with a large stride: `stride = blockDim.x` (half the block's data).
+2. Cut the stride in half each round: `stride /= 2` until it reaches 1.
+3. Each thread simply accesses its own neighboring index:
 
 $$
 i = \text{start} + \text{threadIdx.x}
@@ -476,7 +480,33 @@ $$
 
 ![Sequential Addressing Reduction Tree](@/assets/images/parallel_programming/sequential-addressing-tree.png)
 
-Because adjacent threads (`threadIdx.x = 0, 1, 2, ...`) read adjacent memory words (`i, i + 1, i + 2, ...`), memory requests are **fully coalesced** into single 32-byte cache line transactions!
+#### Step-by-Step Example (4 Threads, 8 Numbers)
+Consider the example from Slide 54 with array `[1, 9, 5, 1, 6, 4, 7, 2]`:
+
+* **Round 1 (`stride = 4`):**
+  Threads 0, 1, 2, 3 are active (`threadIdx.x < 4`). Each thread pairs with element $i + 4$:
+  * Thread 0: `in[0] += in[4]` $\rightarrow 1 + 6 = \mathbf{7}$
+  * Thread 1: `in[1] += in[5]` $\rightarrow 9 + 4 = \mathbf{13}$
+  * Thread 2: `in[2] += in[6]` $\rightarrow 5 + 7 = \mathbf{12}$
+  * Thread 3: `in[3] += in[7]` $\rightarrow 1 + 2 = \mathbf{3}$
+  * *Array becomes:* `[ 7, 13, 12, 3 | 6, 4, 7, 2 ]`
+
+* **Round 2 (`stride = 2`):**
+  Only Threads 0 and 1 are active (`threadIdx.x < 2`). Pair with element $i + 2$:
+  * Thread 0: `in[0] += in[2]` $\rightarrow 7 + 12 = \mathbf{19}$
+  * Thread 1: `in[1] += in[3]` $\rightarrow 13 + 3 = \mathbf{16}$
+  * *Array becomes:* `[ 19, 16 | 12, 3 | 6, 4, 7, 2 ]`
+
+* **Round 3 (`stride = 1`):**
+  Only Thread 0 is active (`threadIdx.x < 1`). Pair with element $i + 1$:
+  * Thread 0: `in[0] += in[1]` $\rightarrow 19 + 16 = \mathbf{35}$
+  * *Final block sum:* `in[start] = 35`!
+
+---
+
+#### Why Is $V_3$ Twice as Fast? Memory Coalescing
+* In $V_2$, adjacent threads read numbers spaced far apart $\rightarrow$ wasted bandwidth.
+* In $V_3$, Threads 0, 1, 2, 3 read numbers **side-by-side** in memory $\rightarrow$ the GPU hardware loads all of them in **one single 32-byte memory transaction** (Coalescing)!
 
 ---
 
