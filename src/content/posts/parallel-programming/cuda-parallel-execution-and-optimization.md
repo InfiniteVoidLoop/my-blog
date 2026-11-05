@@ -466,16 +466,15 @@ Each row represents **exactly one hypothesis and one code change**:
 
 ---
 
-## 9. Next: Applying APOD to Our First Real Pattern — Parallel Reduction 🚀
+## 9. Parallel Reduction: The Task & General Form 🧩
 
-Now that our systematic APOD framework and profiling toolkit are in place, we are ready to apply it to our first foundational parallel programming pattern: **Parallel Reduction**.
+Now that our APOD framework and profiling toolkit are set up, we apply them to our first real-world algorithmic pattern: **Reduction**.
 
-### The Task: Array Summation
-Given an array `in` of $n$ elements, compute their aggregate sum:
-
-$$
-\text{Output} = \sum_{i=0}^{n-1} \text{in}[i]
-$$
+### What is a Reduction?
+A **Reduction** takes an input array of $n$ numbers and combines them into a **single scalar value** using a binary operator:
+- **Sum Reduction:** Total sum of all elements ($\sum x_i$).
+- **Product Reduction:** Product of all elements ($\prod x_i$).
+- **Min / Max Reduction:** Finding the smallest or largest value in an array.
 
 ```
 Input:  [ 1,  9,  5,  1,  6,  4,  7,  2 ]  (n = 8)
@@ -483,7 +482,75 @@ Input:  [ 1,  9,  5,  1,  6,  4,  7,  2 ]  (n = 8)
 Output: 35
 ```
 
-While summing numbers sounds trivial on a CPU, doing it efficiently across tens of thousands of GPU threads requires solving **warp divergence**, **shared memory bank conflicts**, **instruction-level parallelism (ILP)**, and **cross-warp communication**.
+### The General Form of a Reduction
+In its generalized form, every reduction depends on two components: an **Identity value** and an **Associative Operator**:
 
-In Part 2, we will climb the optimization ladder from $V_0$ to $V_6$, comparing every single step in our APOD log!
+$$
+\text{acc} = \text{IDENTITY}
+$$
+
+$$
+\text{for } i \in [0, n - 1]: \quad \text{acc} = \text{Operator}(\text{acc}, \text{input}[i])
+$$
+
+| Operation | Operator ($\oplus$) | Identity Value | Associative Property |
+| :--- | :--- | :--- | :--- |
+| **Sum** | $a + b$ | $0$ | $(a + b) + c = a + (b + c)$ |
+| **Product** | $a \times b$ | $1$ | $(a \times b) \times c = a \times (b \times c)$ |
+| **Maximum** | $\max(a, b)$ | $-\infty$ (`INT_MIN`) | $\max(\max(a, b), c) = \max(a, \max(b, c))$ |
+| **Minimum** | $\min(a, b)$ | $+\infty$ (`INT_MAX`) | $\min(\min(a, b), c) = \min(a, \min(b, c))$ |
+
+> [!IMPORTANT]
+> **The Parallel Golden Rule:** A reduction can only be parallelized if its operator is **associative**—allowing pairs of numbers to be combined in arbitrary order!
+
+---
+
+## 10. Assess the Baseline: Sequential CPU Sum Reduction ($V_0$) ⏱️
+
+Following the APOD process, our first step before writing any CUDA code is to **Assess the sequential baseline** on the CPU.
+
+### Sequential Implementation
+
+On a single CPU core, sum reduction is a simple `for` loop that accumulates elements from left to right:
+
+```cpp
+int reduceOnHost(int *in, int n) {
+    int s = in[0];
+    for (int i = 1; i < n; i++) {
+        s += in[i];
+    }
+    return s;
+}
+```
+
+![Sequential Sum Reduction Execution Flow](@/assets/images/parallel_programming/sequential-reduction.png)
+*Figure 2: Sequential sum reduction accumulating elements step-by-step over time.*
+
+### Complexity Analysis
+For an array of $n$ elements:
+- **Time (# of time steps):** $n - 1 \rightarrow \mathcal{O}(n)$ sequential steps.
+- **Work (# of additions):** $n - 1 \rightarrow \mathcal{O}(n)$ operations.
+
+Every addition strictly depends on the previous addition's output. A single core cannot execute step 2 until step 1 finishes!
+
+---
+
+### Assessing the Workload & Hardware Ceiling
+
+Let's test this baseline with a real dataset:
+- **Input size:** $n = 2^{24} + 7$ integers ($\approx 16.78\text{ million elements}$).
+- **Data volume:** $16.78\text{ M} \times 4\text{ bytes} \approx \mathbf{64\text{ MB}}$.
+- **Hardware baseline:** A single CPU core vs a modern GPU (such as NVIDIA Tesla T4 with $\approx 320\text{ GB/s}$ peak bandwidth).
+
+When we ask the **Assess questions**:
+1. **Is it parallelizable?** Yes, because addition is associative: $(a + b) + (c + d) = ((a + b) + c) + d$.
+2. **What is the arithmetic intensity?** Very low. We perform exactly **one addition per 4 bytes loaded** from memory. This means the kernel will be purely **memory-bound**.
+3. **What is the theoretical best-case execution time on GPU?**
+   If our GPU could read DRAM at full wire speed ($320\text{ GB/s}$):
+
+$$
+T_{\text{ideal}} \approx \frac{64\text{ MB}}{320\text{ GB/s}} \approx \mathbf{0.2\text{ ms}}
+$$
+
+This $0.2\text{ ms}$ ceiling is our target benchmark! In the next section, we build our very first CUDA kernel ($V_1$) to parallelize this loop.
 
