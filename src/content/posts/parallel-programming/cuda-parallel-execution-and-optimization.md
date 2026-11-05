@@ -233,3 +233,103 @@ $$
 
 > [!IMPORTANT]
 > **Takeaway:** Even though your CUDA kernel is **$40\times$ faster**, your users will only experience a **$4.5\times$ speedup**. Always measure and report both numbers: the kernel speedup and the end-to-end application speedup!
+
+
+---
+
+## 4. Parallelize, Optimize & Deploy in Practice ⚙️
+
+Now that we know our hotspot from the **Assess** step, let's look at the remaining three pillars of APOD.
+
+### P: Parallelize (Correctness First, Not Speed)
+
+The sole goal here is **functional correctness**:
+
+- **Simplest Mapping:** Assign one thread per output element. Keep the logic simple and readable.
+- **Rules of Thumb:**
+  - **CPU as Ground Truth:** Always compare GPU results against the CPU reference after every run.
+  - **Edge-Case Testing:** Test awkward sizes early (e.g. $n = 1$, odd sizes, $n$ not a power of 2, $n$ smaller than a block).
+  - **Error Checking:** Always check CUDA errors after API calls and kernel launches (`cudaGetLastError()`).
+
+> [!TIP]
+> Do not attempt micro-optimizations yet. A fast kernel that produces wrong numbers is useless.
+
+---
+
+### O: Optimize (The Scientific Loop)
+
+Optimization is not guessing—it is a strict scientific loop:
+
+$$
+\text{Measure} \longrightarrow \text{Find Bottleneck} \longrightarrow \text{Hypothesis} \longrightarrow \text{Change 1 Thing} \longrightarrow \text{Verify}
+$$
+
+- **Evidence-Based:** Use profiling tools (`ncu`, `nsys`) to identify the real bottleneck (e.g. memory bandwidth vs warp divergence).
+- **One Change at a Time:** If you change multiple variables at once, you will never know which one helped.
+- **Revert Ruthlessly:** If a code change does not improve speed, **revert it**. Never keep complexity without performance gains.
+- **When to Stop Optimizing?**
+  - You hit hardware limits (e.g. achieving 75–80% of peak memory bandwidth).
+  - The kernel is no longer the main application hotspot.
+  - The remaining speedup is too small to justify extra code complexity.
+
+---
+
+### D: Deploy (Ship Gains Early)
+
+- **End-to-End Validation:** Test with real production input data and full dataset sizes.
+- **Measure Real Speedup:** Measure overall application time, including PCIe memory copies and setup.
+- **Document Decisions (APOD Log):** Keep notes on what worked, what failed, and why.
+- **Ship Early:** A **$3\times$ speedup delivered to users** is infinitely more valuable than an unfinished $30\times$ optimization that never ships.
+
+---
+
+## 5. How to Measure Performance Correctly 📊
+
+Never guess performance—measure it accurately using proper GPU timers and metrics:
+
+### 1. Accurate GPU Timing (`cudaEvent`)
+
+Kernel launches on the CPU are **asynchronous**—the CPU function returns immediately while the GPU is still executing. CPU timers (`std::chrono`) will only measure the launch overhead unless explicitly synchronized.
+
+Always use native CUDA events with a warm-up launch:
+
+```cpp
+cudaEvent_t start, stop;
+cudaEventCreate(&start);
+cudaEventCreate(&stop);
+
+// 1. Warm-up launch (pays one-time driver / allocation overhead)
+kernel<<<grid, block>>>(d_in, d_out, n);
+
+// 2. Measure actual execution
+cudaEventRecord(start);
+kernel<<<grid, block>>>(d_in, d_out, n);
+cudaEventRecord(stop);
+
+// 3. Wait for GPU to finish and read time
+cudaEventSynchronize(stop);
+float milliseconds = 0.0f;
+cudaEventElapsedTime(&milliseconds, start, stop);
+```
+
+### 2. Core Metrics: Speedup & Bandwidth
+
+To evaluate your kernel, track two primary metrics:
+
+1. **Speedup:**
+
+$$
+\text{Speedup} = \frac{T_{\text{baseline}}}{T_{\text{new}}}
+$$
+
+Always clearly specify your baseline (e.g. single-threaded CPU vs previous GPU iteration).
+
+2. **Effective Memory Bandwidth:**
+
+$$
+\text{Effective Bandwidth (GB/s)} = \frac{\text{Bytes Read} + \text{Bytes Written}}{\text{Time (seconds)} \times 10^9}
+$$
+
+- For example, reading $n = 2^{24}$ 32-bit integers ($16.7\text{ M elements}$) consumes $4n = 64\text{ MB}$.
+- Compare your achieved bandwidth against the GPU's theoretical limit (e.g. Tesla T4 peak is $\approx 320\text{ GB/s}$).
+- If your kernel hits **70–80% of peak bandwidth**, it is purely memory-bound and already near hardware perfection.
