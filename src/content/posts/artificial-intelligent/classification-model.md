@@ -23,6 +23,8 @@ In Machine Learning, **Regression** is the tool we use to answer *"How much?"* o
 
 Even though the question changes, the core training pipeline stays the same: load data, pass it through the model, calculate loss, compute gradients, and update weights. What changes are **how we represent labels**, **the shape of the output layer**, and **the loss function**.
 
+![Classification and Softmax Regression](/posts/artificial-intelligent/classification-and-softmax-regression/index.png)
+
 ## Table of contents
 
 ---

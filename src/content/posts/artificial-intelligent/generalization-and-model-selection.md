@@ -20,6 +20,8 @@ In Machine Learning, getting 100% accuracy on your training data is rarely good 
 
 In this article, we break down what **generalization** really means, what factors control **model complexity**, how to safely split your data, and how to use **K-Fold Cross-Validation**.
 
+![Generalization and Model Selection](/posts/artificial-intelligent/generalization-and-model-selection/index.png)
+
 ## Table of contents
 
 ---

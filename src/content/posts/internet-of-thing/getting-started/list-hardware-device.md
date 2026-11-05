@@ -15,6 +15,8 @@ seriesOrder: 7
 ---
 This blog is my diary recording my journey of learning about IoT, particularly the hardware devices used in IoT applications. I will introduce some basic hardware devices in IoT, including sensors and actuators.
 
+![Some basic hardware devices in IoT](/posts/internet-of-thing/getting-started/hardware-devices-iot/index.png)
+
 ## Table of contents
 ## Sensor Devices
 
