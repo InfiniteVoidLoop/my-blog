@@ -21,20 +21,28 @@ Chấm bài tập lập trình tự động cho học sinh, sinh viên chưa bao
 
 ## Table of contents
 
-## Vì sao các cách chấm code cũ đều gặp vấn đề?
+## Bối cảnh & Đặt vấn đề (Introduction)
 
-Hầu hết các nền tảng luyện code hiện nay (như LeetCode hay các hệ thống nộp bài ở trường đại học) đều dựa vào 2 cách chính, nhưng cả 2 đều bộc lộ nhược điểm lớn:
+Trong giáo dục tin học hiện đại và các nền tảng lập trình thi đấu trực tuyến (như LeetCode, Codeforces), việc chấm bài tự động đóng vai trò sống còn. Khi số lượng sinh viên học lập trình ngày càng đông, việc giảng viên ngồi chấm thủ công từng bài là bất khả thi. Các hệ thống bắt buộc phải có khả năng xử lý hàng chục nghìn bài nộp một cách nhanh chóng, công bằng và có phản hồi chi tiết.
+
+Tuy nhiên, các giải pháp hiện tại đều đang đứng trước ngõ cụt:
 
 ### 1. Cách truyền thống: Chạy thử code trên máy chủ (Sandbox)
 Hệ thống ném code của người học vào một môi trường cách ly (sandbox) rồi chạy thử với danh sách câu hỏi kiểm tra (test cases):
 - **Dễ chấm sót lỗi:** Nếu người ra đề quên một vài trường hợp đặc biệt (như số 0, số âm, mảng rỗng), bài nộp dù sai logic nghiêm trọng vẫn có thể "ăn may" vượt qua hết test và được 100 điểm.
 - **Rủi ro bảo mật:** Cho phép code lạ chạy trực tiếp trên máy chủ rất nguy hiểm. Kẻ xấu có thể nộp code chứa vòng lặp vô tận đốt cháy CPU, cố tình đọc trộm dữ liệu hệ thống, hoặc tìm cách hack máy chủ.
 
-### 2. Cách dùng AI lớn trên đám mây (như GPT-4)
-Thay vì chạy code, ta đưa code cho một mô hình AI lớn đọc và phán đoán:
+### 2. Cách dùng AI lớn trên đám mây (như GPT-4, Claude)
+Gần đây, các mô hình ngôn ngữ lớn (LLM) mở ra một hướng đi mới: **Đọc hiểu code tĩnh** mà không cần chạy file thực thi, từ đó loại bỏ hoàn toàn nguy cơ bảo mật. Nhưng cách này cũng vấp phải rào cản lớn:
 - **Quá tốn tiền:** Mỗi lần sinh viên nộp bài lại phải trả phí API cho OpenAI hay Google. Với hàng chục nghìn lượt nộp mỗi kỳ thi, chi phí sẽ trở thành gánh nặng khổng lồ.
 - **Phản hồi quá chậm:** Mô hình AI lớn mất từ 5 đến 15 giây để "suy nghĩ" và viết cả đoạn văn dài trước khi đưa ra điểm số. Khi cả trăm sinh viên cùng nộp bài một lúc vào cuối giờ, hệ thống sẽ bị treo cứng.
-- **Hay đoán nhầm loại lỗi:** AI lớn thông thường rất hay nhầm lẫn lý do code thất bại — ví dụ không phân biệt rõ code bị chạy chậm (hết giờ) hay do bị lỗi bộ nhớ.
+- **Hay đoán nhầm loại lỗi:** AI lớn thông thường rất hay nhầm lẫn lý do code thất bại — ví dụ không phân biệt rõ code bị chạy chậm (hết giờ TLE) hay do bị lỗi bộ nhớ (RE).
+
+### 3. Đóng góp cốt lõi của nghiên cứu AIOJ
+Để giải quyết bài toán trên, nghiên cứu này mang lại 3 đóng góp quan trọng:
+1. **Chấm bài tĩnh toàn diện:** Biến việc chấm code thành bài toán vừa đoán kết quả vừa giải thích lý do, loại bỏ hoàn toàn việc phải chạy thử code thật lúc triển khai.
+2. **Chưng cất tri thức sang AI nhỏ (Knowledge Distillation):** Lấy chuỗi tư duy từng bước (CoT) của mô hình lớn (DeepSeek) truyền cho mô hình nhỏ (Qwen 1.5B) bằng kỹ thuật LoRA siêu tiết kiệm phần cứng.
+3. **Thực nghiệm chứng minh:** Mô hình 1.5B đạt độ chính xác tương đương các AI khổng lồ nhưng tốn cực ít bộ nhớ và phản hồi gần như tức thì.
 
 ---
 
@@ -62,7 +70,7 @@ Sự thay đổi thứ tự này giúp học sinh biết điểm ngay lập tứ
 
 ## Bắt đúng 9 nhóm lỗi chi tiết
 
-Thay vì chỉ thông báo chung chung là "Đậu" hay "Rớt", AIOJ phân loại chính xác nguyên nhân lỗi cho người học:
+Thay vì chỉ thông báo chung chung là "Đậu" hay "Rớt", AIOJ phân loại chính xác nguyên nhân lỗi cho người học dựa trên bộ tiêu chí CodeJudge-Eval:
 
 | Ký hiệu | Tên lỗi | Giải thích bằng từ ngữ đời thường |
 | :---: | :--- | :--- |
