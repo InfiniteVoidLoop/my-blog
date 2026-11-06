@@ -152,21 +152,10 @@ Constant Cache has a unique hardware profile:
 - **Low Latency (~1 cycle):** On a cache hit, data arrives almost instantly.
 - **Low Bandwidth (4 Bytes / cycle / SM):** The hardware bus can only emit **one 4-byte float/int per clock cycle**!
 
-This narrow bus leads to two opposite performance extremes:
+This narrow bus creates two opposite performance extremes depending on how threads in a warp access it:
 
-```
-[ Warp Broadcast (All 32 threads read flt[0]) ]
-flt[0] ──> [ Constant Cache ] ──> Broadcasts to all 32 threads in 1 cycle! (Fast!)
-
-[ Warp Serialization (Each thread reads different table[tid]) ]
-thread 0 ──> cycle 1
-thread 1 ──> cycle 2   ===> 32 serialized read cycles! (Very Slow!)
-...
-thread 31 ─> cycle 32
-```
-
-1. **Broadcast (Ideal):** When all 32 threads in a warp read the **exact same memory address**, the hardware reads it once and broadcasts it to all 32 threads in **1 clock cycle**!
-2. **Serialization (Worst Case):** If threads read **different addresses**, the warp must serialize: reading 32 different values takes **32 clock cycles**!
+- **Broadcast (Ideal — 1 cycle):** When all 32 threads in a warp request the **exact same memory address** (e.g., all threads reading the filter coefficient `d_flt[0]`), the hardware fetches the 4-byte value once and broadcasts it simultaneously to all 32 threads in a single clock cycle.
+- **Serialization (Worst Case — 32 cycles):** When the 32 threads request **different memory addresses** (e.g., thread $k$ reading `table[k]`), the single 4-byte bus cannot serve them simultaneously. The requests must be serialized one after another, taking up to 32 separate clock cycles.
 
 #### Real-World Example: 1D Convolution
 In a 1D convolution, every thread calculates an output by sliding a filter `d_flt` across an input array.
