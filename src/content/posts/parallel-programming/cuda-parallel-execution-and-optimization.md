@@ -400,14 +400,9 @@ Consider a block of 256 threads (8 warps):
 #### The $V_2$ Solution: Pack Active Threads Together
 Instead of scattering active threads across all warps, $V_2$ compacts all working threads into the **first contiguous threads** (`threadIdx.x < threshold`).
 
-This ensures:
-- Active warps run at **100% capacity** (no divergence inside).
-- Inactive warps have **0 active threads** $\rightarrow$ the hardware warp scheduler skips them entirely with zero cost!
-
-```
-V1 (Scattered):  [X . X . X . X .]   -> Warp suffers 50% divergence
-V2 (Compacted):  [X X X X . . . .]   -> Warp 0 runs at 100%, Warp 1 disabled
-```
+This yields two major benefits:
+- **$V_1$ (Scattered):** Active threads are separated by inactive threads within the same warp (`stride * 2`), causing every warp to suffer from divergence (e.g., 50% active, 50% idle).
+- **$V_2$ (Compacted):** Contiguous threads `0, 1, ..., threshold - 1` do all the work. Fully active warps execute with 100% efficiency, while entirely idle warps are skipped instantly by the hardware warp scheduler at zero cost.
 
 ---
 
@@ -743,20 +738,13 @@ This represents **$64.6\%$** of the theoretical physical ceiling ($320\text{ GB/
 ---
 
 #### The PCIe Reality Check: Amdahl's Law Strikes Back!
-Before celebrating a $135\times$ speedup, examine the end-to-end wall clock time:
+Before celebrating a $135\times$ kernel speedup, examine the end-to-end wall clock time comparing CPU sequential execution ($43.7\text{ ms}$) with GPU total execution ($15.1\text{ ms}$):
 
-```
-[ CPU Sequential Sum ] ======================================> 43.7 ms
-
-[ GPU Execution Flow ]
-|-- PCIe H2D Copy (14.8 ms) --|-- Kernel (0.32 ms) --|-- D2H Copy (0.01 ms) --|
-Total GPU Wall-Clock = 15.1 ms
-```
-
-| Component | Time (ms) | Percentage of Total Time |
+| Component | Time (ms) | Percentage of Total GPU Time |
 | :--- | :---: | :---: |
 | **PCIe Transfer (Host $\rightarrow$ Device)** | 14.8 ms | **97.9%** |
 | **Optimized GPU Kernel ($V_5$)** | 0.32 ms | **2.1%** |
+| **PCIe Transfer (Device $\rightarrow$ Host)** | 0.01 ms | **< 0.1%** |
 | **Total GPU End-to-End** | **15.1 ms** | **100.0%** |
 
 > [!WARNING]
