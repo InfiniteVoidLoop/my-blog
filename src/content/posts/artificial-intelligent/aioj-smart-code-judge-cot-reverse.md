@@ -1,95 +1,91 @@
 ---
 author: DangVoHongPhuc
 pubDatetime: 2026-11-06T14:15:00+07:00
-title: "AIOJ: Building a Smarter, Lightweight AI Code Judge with CoT-Reverse"
+title: "AIOJ: Making Code Grading Smarter and Faster with AI"
 slug: aioj-smart-code-judge-cot-reverse
 featured: true
 draft: false
 tags:
   - aioj
   - code-judge
+  - ai
   - llm
-  - knowledge-distillation
-  - cot-reverse
-description: "How we built AIOJ — an automated code evaluation framework using CoT-Reverse distillation to grade code statically without sandboxes or expensive cloud LLMs."
+description: "How we built AIOJ — a fast, secure, and lightweight AI system that grades code without running risky servers or paying expensive cloud bills."
 series: "Artificial Intelligent"
 seriesOrder: 6
 ---
 
-Traditional automated code evaluation faces a tough dilemma: sandbox execution is vulnerable and test-dependent, while large cloud LLMs are slow and prohibitively expensive. In this project, we introduce **AIOJ**, a lightweight, static code evaluation framework powered by a compact 1.5B model using a novel **Verdict-Prioritized Chain-of-Thought (CoT-Reverse)** distillation paradigm.
+Grading programming assignments automatically is hard. Running student code directly on a server is risky, while asking giant AI models like GPT-4 to grade every submission is far too slow and expensive. In this project, we built **AIOJ**, a lightweight AI tool that reads code, catches errors, and delivers instant results safely on ordinary hardware.
 
 ![AIOJ Architecture](/posts/artificial-intelligent/aioj-smart-code-judge-cot-reverse/index.png)
 
 ## Table of contents
 
-## The Problem with Traditional Code Judging
+## Why Old Ways of Grading Code Fail
 
-Automating code assessment in computer science education and competitive programming traditionally relies on two paradigms, each carrying major bottlenecks:
+Most online platforms (like LeetCode or university portals) use one of two methods to grade student code, but both have real problems:
 
-### 1. The Sandbox Execution Trap
-Historically, online judges (like LeetCode or Codeforces) execute untrusted user code inside isolated environments (Docker/sandboxes). While direct, this introduces critical vulnerabilities:
-- **Test-Suite Dependency:** If instructors miss edge-case test cases, flawed solutions slip through with false-positive "Accepted" verdicts.
-- **Runtime Security Risks:** Malicious submissions can trigger resource exhaustion loops, denial-of-service, or dangerous host breakouts.
+### 1. The Sandbox Way (Running Code on a Server)
+The server runs the student's code against a list of test questions:
+- **Missed Bugs:** If the teacher forgets a tricky test case (like negative numbers or zero), broken code can still pass with a perfect score.
+- **Security Risks:** Running stranger's code directly on your server is dangerous. Malicious code can crash the machine, waste resources, or try to hack the system.
 
-### 2. The Cloud-Scale LLM Trade-off
-Large Language Models (LLMs) like GPT-4o or Claude-3.5-Sonnet offer static analysis without compiling unverified binaries. However:
-- **Prohibitive Costs:** Calling proprietary APIs for thousands of student submissions creates an unsustainable financial burden.
-- **High Inference Latency:** Generating long Chain-of-Thought reasoning steps before outputting a verdict causes unacceptable delays during peak contest submissions.
-- **Subtle Fault Blindspots:** Generalist LLMs frequently stumble when differentiating nuanced execution faults like Time Limit Exceeded (TLE) vs. complex runtime errors.
-
----
-
-## Enter AIOJ: Verdict-Prioritized Reasoning (CoT-Reverse)
-
-To combine the diagnostic depth of large models with the speed of lightweight local deployment, **AIOJ** distills knowledge from a large teacher LLM (DeepSeek) into a compact student architecture ($\le 1.5\text{B}$ parameters) using LoRA.
-
-The key innovation is **reversing the reasoning sequence**:
-
-### Standard CoT vs. CoT-Reverse
-
-- **Standard CoT:**  
-  $$\text{Input } (P, C) \longrightarrow \text{Rationale } (R) \longrightarrow \mathbf{\text{Verdict } (y)}$$  
-  *Flaw:* The system forces the model to generate a long diagnostic essay before it ever produces the final grade, causing high latency.
-
-- **Proposed CoT-Reverse:**  
-  $$\text{Input } (P, C) \longrightarrow \mathbf{\text{Verdict } (y)} \longrightarrow \text{Rationale } (R)$$  
-  *Advantage:* The model predicts the verdict immediately at test time. The system can return the grade to the student with near-zero latency, generating the in-depth pedagogical rationale only when requested.
-
-```
-Standard CoT:   [Input Code] ---> [Generate 500-token explanation] ---> Verdict: WA
-CoT-Reverse:    [Input Code] ---> Verdict: WA (Instant!) ---> [Optional explanation]
-```
+### 2. The Big Cloud AI Way (Using Models like GPT-4)
+Instead of running the code, you ask a huge AI model to read it:
+- **Too Expensive:** Paying API fees for tens of thousands of submissions adds up very fast.
+- **Too Slow:** Large models take 5 to 15 seconds to "think" and write long essays before giving a score. If 500 students submit at once, the system freezes.
+- **Wrong Labels:** Giant general AI models often confuse why code failed — like mixing up a slow algorithm with a crash.
 
 ---
 
-## Fine-Grained 9-Class Diagnostic Taxonomy
+## What Makes AIOJ Different?
 
-Rather than a simple binary pass/fail score, AIOJ classifies candidate code into a comprehensive 9-verdict taxonomy adapted from CodeJudge-Eval:
+AIOJ uses a small, fast AI model (only 1.5 billion parameters) trained using a simple trick we call **CoT-Reverse (Result First, Explanation Second)**.
 
-| Label | Verdict | Description |
+### Regular AI vs. AIOJ
+
+- **Regular AI (Explanation First):**  
+  The AI must write out a long, detailed paragraph explaining what it thinks before it tells you if you passed.  
+  *Problem:* You have to wait a long time just to see your grade.
+
+- **AIOJ (Result First):**  
+  AIOJ gives you the grade immediately, then explains why only if you ask.
+
+```
+Regular AI:   [Reads Code] ---> [Writes long 500-word essay...] ---> Verdict: Failed! (Slow)
+AIOJ:         [Reads Code] ---> Verdict: Failed! (Instant) ---> [Explains why]
+```
+
+This simple change gives students instant feedback during busy exams.
+
+---
+
+## 9 Clear Error Labels
+
+Instead of just saying "Pass" or "Fail", AIOJ tells students exactly what went wrong:
+
+| Label | Verdict | What it means in plain English |
 | :---: | :--- | :--- |
-| **A** | Accepted (AC) | Completely correct, optimal implementation |
-| **B** | Compilation Error (CE) | Fails syntax parsing or compilation |
-| **C** | Wrong Answer (WA) | Runs cleanly but outputs incorrect logic |
-| **D** | Time Limit Exceeded (TLE) | Algorithmic complexity is suboptimal |
-| **E - I** | Compound Faults | Overlapping failures (e.g., WA + TLE, or WA + Runtime Error) |
-
-By prioritizing the verdict, the student model avoids the "over-optimistic bias" of naive small models (which frequently guess "Accepted" when confused) and accurately flags compound algorithmic issues.
+| **A** | Accepted (AC) | The code is correct, clean, and optimal. |
+| **B** | Compilation Error (CE) | The code has typo or syntax errors and won't build. |
+| **C** | Wrong Answer (WA) | The code runs fine, but gives the wrong answer. |
+| **D** | Time Limit Exceeded (TLE) | The code works, but the algorithm is too slow. |
+| **E - I** | Mixed Errors | Combinations of multiple mistakes (e.g., slow AND wrong answer). |
 
 ---
 
-## Performance Highlights
+## How Well Does It Work?
 
-Evaluated across easy, medium, and hard competitive programming benchmarks:
+We tested AIOJ against real competitive programming problems:
 
-1. **Beating Larger Models:** Our compact 1.5B model equipped with CoT-Reverse achieves a **Macro-F1 of 20.60%** on the 9-class Hard benchmark, outperforming much larger open foundation models such as **Llama-3.1-8B-Instruct (7.69%)** and rivaling frontier models like **GPT-4o (13.61%)** and **Gemini-1.5-Pro (15.76%)**.
-2. **Eliminating Dead Classes:** Traditional small models score 0.00% F1 on compound error classes (Labels G, H, I). CoT-Reverse reactivates these dead classes, recognizing multi-fault submissions without hallucinations.
-3. **Hardware Accessibility:** Can run on standard, cost-effective consumer hardware or university on-premise servers without cloud API dependencies.
+1. **Beats Much Bigger Models:** Our tiny 1.5B model scored higher on hard error detection (**20.6% F1 score**) than much bigger models like **Llama-3.1-8B (7.6%)**, and competed closely with top commercial tools like **GPT-4o (13.6%)**.
+2. **Catches Tricky Bugs:** Standard small models often give up and guess "Accepted" on hard code. AIOJ reliably spots tricky overlapping bugs.
+3. **Runs on Normal Computers:** You don't need a million-dollar cloud server. Schools can run AIOJ on standard, low-cost computers.
 
 ---
 
-## Summary & Key Takeaways
+## Key Takeaways
 
-- **Static & Safe:** Grades submissions purely by reading logic, completely bypassing runtime sandbox execution risks.
-- **Fast Response:** The CoT-Reverse ordering delivers instant verdicts while preserving rich diagnostic explanations.
-- **Cost-Efficient:** Delivers state-of-the-art diagnostic accuracy within a compact 1.5B parameter footprint, making automated AI code evaluation genuinely accessible for schools and contest platforms.
+- **Safe:** Grades code by reading it, so malicious code can never harm the server.
+- **Instant:** Tells students their result right away by putting the verdict first.
+- **Affordable:** Tiny 1.5B model runs locally, cutting cloud API bills to zero.
