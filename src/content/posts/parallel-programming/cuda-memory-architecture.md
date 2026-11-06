@@ -248,3 +248,60 @@ dynamicSmemKernel<<<gridSize, blockSize, smemBytes>>>(d_in, d_out);
 
 #### When NOT to Use Shared Memory
 Do **NOT** use Shared Memory if data is read only once and not shared among threads (such as in vector addition $C[i] = A[i] + B[i]$). Copying unshared data to Shared Memory introduces extra read/write instructions and unnecessary barrier stalls. In such cases, reading directly from **Global Memory into Registers** is much faster!
+
+
+---
+
+### 6. Case Study: Tiled Matrix Multiplication 🧮
+
+To see the dramatic impact of Shared Memory, look at **Matrix Multiplication**:
+
+$$
+C[\text{row}][\text{col}] = \sum_{k=0}^{N-1} A[\text{row}][k] \times B[k][\text{col}]
+$$
+
+#### The Naive Dilemma: Redundant DRAM Loads
+In a naive matrix multiplication kernel, each thread calculates one element of $C$. To compute the dot product:
+- Thread $(0, 0)$ reads Row 0 of $A$ from DRAM.
+- Thread $(0, 1)$ also reads Row 0 of $A$ from DRAM.
+- In fact, every single element in $A$ and $B$ is repeatedly loaded from high-latency DRAM **$N$ times**!
+
+#### The Tiled Solution: Load Once, Reuse 32 Times!
+Instead of streaming directly from DRAM, we partition matrices into small square chunks called **Tiles** (e.g., $32 \times 32$ elements) that fit entirely inside Shared Memory.
+
+![Tiled Matrix Multiplication](@/assets/images/parallel_programming/tiled-matrix-multiplication.png)
+*Figure 5: Tiled matrix multiplication partitioning computation into phased on-chip tiles.*
+
+1. **Phase by Phase:** For each tile phase $m \in [0, \frac{N}{\text{TILE\_WIDTH}} - 1]$:
+   - Each thread cooperatively loads **one element** of $A$ and **one element** of $B$ into Shared Memory tiles `ds_A` and `ds_B`.
+   - Call `__syncthreads()` to ensure the entire tile is loaded.
+   - Threads multiply elements strictly from fast Shared Memory, accumulating into a private register.
+   - Call `__syncthreads()` to prevent overwriting the tile before all threads finish.
+2. **The Payoff:** Global Memory traffic drops by a factor of $\text{TILE\_WIDTH}$. With $32 \times 32$ tiles, the GPU makes **$32\times$ fewer trips to DRAM**, unlocking massive speedups!
+
+---
+
+## Part 3: Summary & The Developer's Memory Matrix 📋
+
+### Master Memory Comparison Matrix
+
+| Memory Space | Variable Syntax | Physical Location | Scope | Lifetime | Typical Latency | Best Use Case |
+| :--- | :--- | :--- | :--- | :--- | :---: | :--- |
+| **Register** | `float a;` | On-chip Register File | Single Thread | Thread execution | **~1 cycle** | Local scalar variables & loop counters |
+| **Shared** | `__shared__ float s[];` | On-chip SRAM | Thread Block | Block execution | **~1–2 cycles** | Inter-thread communication & tiled data reuse |
+| **Constant** | `__constant__ float c[];` | Off-chip DRAM + On-chip Cache | Global (All threads) | Application | **~1 cycle (hit)** / 400+ (miss) | Small read-only filters broadcast to all threads |
+| **Global** | `cudaMalloc(&d_g, ...);` | Off-chip DRAM | Global (All threads + Host) | Application (`cudaFree`) | **400–800 cycles** | Large input/output datasets |
+| **Local** | Automatic (compiler) | Off-chip DRAM | Single Thread | Thread execution | **400–800 cycles** | Register spillover & dynamically indexed arrays |
+
+---
+
+### The 3 Golden Rules of CUDA Memory Optimization
+
+1. **Maximize Register Usage, but Guard Against Spills:**  
+   Keep local variables in registers. Avoid declaring large arrays inside kernels. Use `#pragma unroll` on loops with constant bounds so indices become compile-time constants rather than spilling to slow Local Memory.
+
+2. **Leverage Constant Memory for Broadcasts:**  
+   If your kernel uses small parameters, coefficients, or convolution masks ($< 64\text{ KB}$) that remain unchanged, place them in `__constant__`. The on-chip Constant Cache will broadcast values to all 32 threads in a single clock cycle.
+
+3. **Stage Data in Shared Memory When Reused:**  
+   If multiple threads in a block read the same input elements—or if a single thread reads an element repeatedly—collaboratively load it into `__shared__` memory once. Protect every load-compute phase with `__syncthreads()` to eliminate redundant DRAM traffic!
