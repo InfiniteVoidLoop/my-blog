@@ -43,9 +43,9 @@ In a linear model, each feature $x_i$ has a fixed weight $w_i$:
 A linear model **can never turn around**. It cannot represent U-shaped curves, bell curves, or threshold boundaries. Real-world phenomena almost never follow this rigid rule:
 
 1. **Non-constant Returns (Income vs. Credit Risk):**
-   * If someone's income grows from $\$0$ to $\$50,000$, their ability to repay a loan jumps dramatically (say, from $0\%$ to $90\%$).
-   * If their income grows from $\$1,000,000$ to $\$1,050,000$, their repayment risk barely changes at all.
-   * A linear model rewards both identical $\$50,000$ jumps with the exact same score increase, which makes no economic sense.
+   * If someone's income grows from &dollar;0 to &dollar;50,000, their ability to repay a loan jumps dramatically (say, from 0% to 90%).
+   * If their income grows from &dollar;1,000,000 to &dollar;1,050,000, their repayment risk barely changes at all.
+   * A linear model rewards both identical &dollar;50,000 jumps with the exact same score increase, which makes no economic sense.
 
 2. **Non-monotonic Realities (Human Body Temperature):**
    * Normal body temperature is healthy at $37^\circ\text{C}$ ($98.6^\circ\text{F}$).
