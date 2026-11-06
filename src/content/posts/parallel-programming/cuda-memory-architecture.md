@@ -107,3 +107,144 @@ Don't let the word "Local" fool you! Local Memory is **NOT on-chip**. It physica
 nvcc -Xptxas=-v my_kernel.cu
 # Output shows: ptxas info : Used X registers, Y bytes smem, Z bytes lmem [spill]
 ```
+
+
+---
+
+## Part 2: The Fast On-Chip Spaces 🚀
+
+On-chip memory spaces reside directly inside the SM silicon. They are hundreds of times faster than DRAM and form the secret weapon of GPU performance.
+
+### 3. Register Memory (RMEM)
+
+Registers are the fastest storage on the entire GPU, operating at **~1 clock cycle**.
+
+- **Scope:** Strictly private to each individual thread.
+- **Lifetime:** Exists only while the thread executes.
+- **Allocation:** Automatic! Any scalar variable declared inside a kernel (`int i`, `float sum`) is stored in a register.
+
+#### Register Pressure vs. Occupancy
+Every SM has a shared pool of physical registers (typically **65,536 registers = 64K**). While CUDA allows a single thread to use up to **255 registers**, doing so kills parallel throughput:
+
+- If each thread uses **32 registers**:
+  $$
+  \text{Active Threads per SM} = \frac{65,536}{32} = \mathbf{2048\text{ threads}} \quad (\mathbf{100\%\text{ Occupancy}})
+  $$
+- If each thread consumes **120 registers**:
+  $$
+  \text{Active Threads per SM} = \frac{65,536}{120} \approx \mathbf{546\text{ threads}} \quad (\approx \mathbf{26\%\text{ Occupancy}})
+  $$
+
+When thread count drops, the SM no longer has enough resident warps to switch between when waiting on DRAM, destroying latency hiding.
+
+---
+
+### 4. Constant Memory (CMEM)
+
+Constant Memory is designed for data that **does not change** during kernel execution and is read simultaneously by multiple threads.
+
+- **Total Capacity:** 64 KB total (stored in DRAM).
+- **On-Chip Cache:** Each SM has a dedicated **Constant Cache (typically 8 KB)**.
+- **Scope:** Read-only for all GPU threads; written by the Host CPU.
+
+#### Low Latency, But Low Bandwidth!
+Constant Cache has a unique hardware profile:
+- **Low Latency (~1 cycle):** On a cache hit, data arrives almost instantly.
+- **Low Bandwidth (4 Bytes / cycle / SM):** The hardware bus can only emit **one 4-byte float/int per clock cycle**!
+
+This narrow bus leads to two opposite performance extremes:
+
+```
+[ Warp Broadcast (All 32 threads read flt[0]) ]
+flt[0] ──> [ Constant Cache ] ──> Broadcasts to all 32 threads in 1 cycle! (Fast!)
+
+[ Warp Serialization (Each thread reads different table[tid]) ]
+thread 0 ──> cycle 1
+thread 1 ──> cycle 2   ===> 32 serialized read cycles! (Very Slow!)
+...
+thread 31 ─> cycle 32
+```
+
+1. **Broadcast (Ideal):** When all 32 threads in a warp read the **exact same memory address**, the hardware reads it once and broadcasts it to all 32 threads in **1 clock cycle**!
+2. **Serialization (Worst Case):** If threads read **different addresses**, the warp must serialize: reading 32 different values takes **32 clock cycles**!
+
+#### Real-World Example: 1D Convolution
+In a 1D convolution, every thread calculates an output by sliding a filter `d_flt` across an input array.
+
+![1D Convolution with Constant Filter](@/assets/images/parallel_programming/1d-convolution-constant-memory.png)
+*Figure 3: 1D convolution where every thread multiplies its input with the shared filter kernel.*
+
+Because every thread accesses `d_flt[j]` at the exact same loop iteration $j$, the filter is a prime candidate for Constant Memory:
+
+```cpp
+#define NF 100
+__constant__ float d_flt[NF]; // Declared outside functions in global scope
+
+// Host populates constant memory before launch
+cudaMemcpyToSymbol(d_flt, h_flt, NF * sizeof(float));
+
+__global__ void conv1D(float *d_in, float *d_out, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n - NF + 1) {
+        float sum = 0.0f;
+        // In loop step j, all 32 threads read the exact same d_flt[j] -> 100% Broadcast!
+        for (int j = 0; j < NF; j++) {
+            sum += d_in[i + j] * d_flt[j];
+        }
+        d_out[i] = sum;
+    }
+}
+```
+
+---
+
+### 5. Shared Memory (SMEM) — The Programmer-Managed Cache
+
+Shared Memory is on-chip SRAM allocated per thread block. It is often described as a **"software-managed cache"**: unlike L1 cache (managed by hardware), you explicitly control what enters and leaves Shared Memory.
+
+- **Location:** On-chip SRAM (**1 to 2 clock cycles**).
+- **Size:** 48 KB to 96 KB per SM (configurable).
+- **Scope:** Shared by **all threads within the same Block**. (Threads in Block A cannot see Block B's shared memory).
+- **Host Accessibility:** **Zero!** The Host CPU cannot read or write Shared Memory directly.
+
+![Shared Memory Workflow](@/assets/images/parallel_programming/shared-memory-workflow.png)
+*Figure 4: The 5-step shared memory collaborative workflow.*
+
+#### The 5-Step Shared Memory Workflow
+1. **Load:** Threads cooperatively read chunks of data from slow Global Memory into fast Shared Memory.
+2. **Synchronize (`__syncthreads()`):** Ensure all threads have finished writing before any thread reads.
+3. **Compute:** Threads read and compute from Shared Memory at on-chip speeds.
+4. **Synchronize (`__syncthreads()`):** Ensure all threads have finished computing before loading the next chunk.
+5. **Store:** Write the final accumulated result back to Global Memory.
+
+#### Why is `__syncthreads()` Mandatory?
+Threads inside a block run asynchronously at varying speeds. If Thread 0 finishes loading early and immediately reads `s_Data[5]` before Thread 5 has finished loading from DRAM, Thread 0 reads **corrupt garbage data** (a **Read-After-Write Race Condition**).
+
+`__syncthreads()` acts as a hardware barrier: **no thread proceeds until 100% of threads in the block reach the barrier.**
+
+#### Static vs. Dynamic Shared Memory
+
+```cpp
+// 1. Static Allocation (Size known at compile time)
+__global__ void staticSmemKernel(int *in, int *out) {
+    __shared__ int s_data[256];
+    s_data[threadIdx.x] = in[blockIdx.x * blockDim.x + threadIdx.x];
+    __syncthreads();
+    // compute...
+}
+
+// 2. Dynamic Allocation (Size determined at runtime via kernel launch)
+__global__ void dynamicSmemKernel(int *in, int *out) {
+    extern __shared__ int s_data[]; // extern keyword with unsized array
+    s_data[threadIdx.x] = in[blockIdx.x * blockDim.x + threadIdx.x];
+    __syncthreads();
+    // compute...
+}
+
+// Host launch passing shared memory bytes as 3rd parameter:
+size_t smemBytes = blockSize * sizeof(int);
+dynamicSmemKernel<<<gridSize, blockSize, smemBytes>>>(d_in, d_out);
+```
+
+#### When NOT to Use Shared Memory
+Do **NOT** use Shared Memory if data is read only once and not shared among threads (such as in vector addition $C[i] = A[i] + B[i]$). Copying unshared data to Shared Memory introduces extra read/write instructions and unnecessary barrier stalls. In such cases, reading directly from **Global Memory into Registers** is much faster!
