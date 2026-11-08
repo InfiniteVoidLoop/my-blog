@@ -248,13 +248,51 @@ Look closely at the derivative curve (dashed line):
 Before the gradient can travel back to the first layer, the signal is completely snuffed out. This is why **ReLU** ($\text{ReLU}'(x) = 1$ for $x > 0$) replaced Sigmoid as the standard activation function for deep hidden layers.
 
 #### 2. Exploding Gradients (When Factors $> 1$)
-If the eigenvalues of $\mathbf{M}$ are consistently greater than $1$, the product grows exponentially.
-* **The Consequence:** Weight updates take astronomical leaps, causing parameters to oscillate out of control. In code, this manifests as floating-point overflow, resulting in the dreaded `loss: NaN` or `Inf`.
+If the eigenvalues of $\mathbf{M}$ are consistently greater than $1$, the product grows exponentially. 
+
+To see this in action, multiply $100$ small random matrices of size $4 \times 4$ with variance $\sigma^2 = 1$:
+
+```python
+import torch
+
+M = torch.normal(0, 1, size=(4, 4))
+for _ in range(100):
+  M = M @ torch.normal(0, 1, size=(4, 4))
+print(M)
+```
+
+The output explodes to astronomical scales:
+
+```text
+tensor([[-2.9185e+23,  1.3915e+25, -1.1865e+25,  1.4354e+24],
+        [ 4.9142e+23, -2.3430e+25,  1.9979e+25, -2.4169e+24], ...]])
+```
+
+* **The Consequence:** When gradients reach $10^{25}$, weight updates take colossal leaps that blow up parameters. In code, this manifests as numerical overflow: `loss: NaN` or `Inf`.
 
 > [!NOTE]
 > **Why Can't We Use the Log-Space Trick?**  
 > In probability, multiplying many small probabilities causes numerical underflow, which is easily fixed by summing logarithms: $\log(p_1 \times p_2) = \log p_1 + \log p_2$.  
 > With gradients, however, the matrices contain both positive and negative values (for which real logarithms are undefined), and optimization requires the exact numeric values to update weights directly.
+
+---
+
+### Breaking the Symmetry: The "Twin Trap"
+
+Why can't we initialize all weights to zero ($W = 0$) or a constant ($W = c$)?
+
+In linear regression, starting at $W = 0$ works fine. In neural networks, it completely paralyzes learning:
+
+1. **Identical Forward Pass:** If all neurons in a layer share identical weights, they compute the exact same activation ($h_A = h_B$).
+2. **Identical Gradients:** During backpropagation, they receive the exact same error signal, giving identical gradients ($\nabla W_A = \nabla W_B$).
+3. **Identical Updates:** Both neurons update to the exact same new weights.
+
+> [!WARNING]
+> **The Twin Trap:**  
+> If weights start equal, neurons stay locked as identical twins forever. A hidden layer of $1,000$ neurons will act like **just a single neuron**, wasting your network's capacity.
+
+* **The Solution (Random Initialization):** We must initialize weights randomly (e.g., Xavier or He initialization). This **breaks the symmetry**, allowing each neuron to specialize in a distinct feature.
+* **Dropout Bonus:** While standard gradient descent cannot break symmetry on its own, **Dropout** can—by randomly turning off one neuron while keeping its twin active.
 
 ### How Modern Deep Learning Tames the Gradients
 
@@ -273,3 +311,4 @@ To train deep networks reliably, deep learning uses several complementary soluti
 * **The Power of MLPs:** Stacking linear layers with non-linear activations ($\sigma$) enables the network to learn rich, hierarchical feature representations automatically.
 * **ReLU is King:** For hidden layers in modern deep learning, $\text{ReLU}(x) = \max(0, x)$ is the standard default choice due to its simplicity and robust gradients.
 * **Numerical Stability Matters:** Deep networks risk **vanishing gradients** (gradients decay to 0, freezing early layers) or **exploding gradients** (gradients blow up to $\infty$, causing `NaN` loss) due to repeated matrix multiplication during backpropagation.
+* **Break the Symmetry:** Never initialize weights to zero or constants. Use random initialization (He/Xavier) so neurons learn distinct features rather than mirroring each other.
