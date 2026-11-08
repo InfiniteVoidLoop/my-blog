@@ -337,7 +337,17 @@ To train deep networks reliably, deep learning uses several complementary soluti
 
 ---
 
-## 6. Summary & Key Takeaways
+## 6. Handwritten Study Notes & Derivations
+
+If you would like to explore the full step-by-step mathematical derivations, backpropagation chain rule walkthroughs, and visual diagrams from this post, you can view or download the notes below:
+
+> [!NOTE]
+> * 📄 <a href="/notes/multiperceptron.pdf" target="_blank" rel="noopener noreferrer">**Preview Full Handwritten Notes (PDF)**</a> *(opens interactive viewer in a new tab)*
+> * 📥 **[Download Original Rnote File (.rnote)](/notes/multiperceptron.rnote)**
+
+---
+
+## 7. Summary & Key Takeaways
 
 * **Linear Limitations:** Linear models enforce monotonicity, making them unable to learn bell curves, thresholds, or spatial contexts.
 * **The Linear Collapse Trap:** Stacking linear layers without non-linear activations mathematically collapses back into a single linear model.
