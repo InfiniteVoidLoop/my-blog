@@ -291,14 +291,47 @@ In linear regression, starting at $W = 0$ works fine. In neural networks, it com
 > **The Twin Trap:**  
 > If weights start equal, neurons stay locked as identical twins forever. A hidden layer of $1,000$ neurons will act like **just a single neuron**, wasting your network's capacity.
 
-* **The Solution (Random Initialization):** We must initialize weights randomly (e.g., Xavier or He initialization). This **breaks the symmetry**, allowing each neuron to specialize in a distinct feature.
+* **The Solution (Random Initialization):** We must initialize weights randomly. This **breaks the symmetry**, allowing each neuron to specialize in a distinct feature.
 * **Dropout Bonus:** While standard gradient descent cannot break symmetry on its own, **Dropout** can—by randomly turning off one neuron while keeping its twin active.
+
+---
+
+### Xavier Initialization: Keeping Variance Stable
+
+If we must initialize randomly, *how big or small should those initial random weights be?*
+
+Think of a deep network like a chain of audio amplifiers:
+* If each layer amplifies the signal by $2\times$, the output rapidly deafens into an ear-piercing screech ($10^{25}$ — **Exploding**).
+* If each layer cuts the signal in half ($0.5\times$), the audio fades into complete silence ($0$ — **Vanishing**).
+* **The Goal:** Keep the signal's spread (**variance**) stable at roughly $1.0\times$ from layer to layer.
+
+#### The Math Made Simple
+
+A neuron computes the sum of its $n_{\text{in}}$ incoming inputs: $o_i = \sum_{j=1}^{n_{\text{in}}} w_{ij} x_j$.
+
+1. **Forward Pass:** Adding $n_{\text{in}}$ inputs multiplies the variance by $n_{\text{in}} \sigma^2$. To keep the signal stable, we want $\sigma^2 = \frac{1}{n_{\text{in}}}$.
+2. **Backward Pass:** Gradients flowing backward pass through $n_{\text{out}}$ outputs. To keep gradients stable, we want $\sigma^2 = \frac{1}{n_{\text{out}}}$.
+3. **The Xavier Compromise:** Since $n_{\text{in}} \neq n_{\text{out}}$, Xavier initialization takes their harmonic balance:
+
+$$
+\sigma^2 = \frac{2}{n_{\text{in}} + n_{\text{out}}} \iff \sigma = \sqrt{\frac{2}{n_{\text{in}} + n_{\text{out}}}}
+$$
+
+In PyTorch, Xavier initialization samples weights from:
+* **Normal Distribution:** $W \sim \mathcal{N}\left(0, \frac{2}{n_{\text{in}} + n_{\text{out}}}\right)$
+* **Uniform Distribution:** $W \sim U\left(-\sqrt{\frac{6}{n_{\text{in}} + n_{\text{out}}}}, \sqrt{\frac{6}{n_{\text{in}} + n_{\text{out}}}}\right)$
+
+> [!TIP]
+> **The Core Rule:**  
+> The more inputs and outputs a layer has, the **smaller** its initial weights must be. This simple rule prevents signals and gradients from ever blowing up or dying out.
+
+---
 
 ### How Modern Deep Learning Tames the Gradients
 
 To train deep networks reliably, deep learning uses several complementary solutions:
 1. **ReLU Activations:** For positive inputs, $\text{ReLU}'(x) = 1$, allowing gradients to pass backward without being compressed by fractions.
-2. **Proper Weight Initialization (He / Xavier):** Carefully scaling initial weights so that variance remains stable across layers.
+2. **Xavier / He Initialization:** Scales initial weights so signal variance stays constant across layers.
 3. **Gradient Clipping:** Setting a hard cap on gradient magnitude ($\|\mathbf{g}\| \le \theta$) to prevent explosions.
 4. **Normalization & Skip Connections:** Techniques like Batch Normalization and ResNet residual links provide direct highways for gradient flow.
 
@@ -310,5 +343,6 @@ To train deep networks reliably, deep learning uses several complementary soluti
 * **The Linear Collapse Trap:** Stacking linear layers without non-linear activations mathematically collapses back into a single linear model.
 * **The Power of MLPs:** Stacking linear layers with non-linear activations ($\sigma$) enables the network to learn rich, hierarchical feature representations automatically.
 * **ReLU is King:** For hidden layers in modern deep learning, $\text{ReLU}(x) = \max(0, x)$ is the standard default choice due to its simplicity and robust gradients.
-* **Numerical Stability Matters:** Deep networks risk **vanishing gradients** (gradients decay to 0, freezing early layers) or **exploding gradients** (gradients blow up to $\infty$, causing `NaN` loss) due to repeated matrix multiplication during backpropagation.
-* **Break the Symmetry:** Never initialize weights to zero or constants. Use random initialization (He/Xavier) so neurons learn distinct features rather than mirroring each other.
+* **Numerical Stability Matters:** Deep networks risk **vanishing gradients** (decaying to 0) or **exploding gradients** (blowing up to $\infty$, causing `NaN` loss) due to repeated matrix multiplication.
+* **Break the Symmetry:** Never initialize weights to zero or constants. Use random initialization so neurons learn distinct features rather than mirroring each other.
+* **Xavier Initialization:** Automatically scales weights based on layer size ($\sqrt{\frac{2}{n_{\text{in}} + n_{\text{out}}}}$) to keep variance stable through all layers.
