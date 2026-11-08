@@ -342,7 +342,7 @@ To train deep networks reliably, deep learning uses several complementary soluti
 If you would like to explore the full step-by-step mathematical derivations, backpropagation chain rule walkthroughs, and visual diagrams from this post, you can download the original study notes below:
 
 > [!NOTE]
-> * 📥 **[Download Original Rnote File (.rnote)](/my-blog/notes/multiperceptron.rnote)** *(open with the open-source [Rnote](https://rnote.flathub.org/) app)*
+> * 📥 **[Download Original Rnote File (.rnote)](/notes/multiperceptron.rnote)** *(open with the open-source [Rnote](https://rnote.flathub.org/) app)*
 
 ---
 

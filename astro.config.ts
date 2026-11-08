@@ -18,13 +18,25 @@ import {
   transformerNotationWordHighlight,
 } from "@shikijs/transformers";
 import { transformerFileName } from "./src/utils/transformers/fileName";
+import { rehypePrefixBase } from "./src/utils/rehypePrefixBase";
 import config from "./astro-paper.config";
 
 const siteUrl = new URL(config.site.url);
+const isVercel = Boolean(process.env.VERCEL);
+const basePath = isVercel
+  ? undefined
+  : process.env.BASE_PATH ||
+    (siteUrl.pathname !== "/" ? siteUrl.pathname : undefined);
 
 export default defineConfig({
-  site: siteUrl.origin,
-  base: siteUrl.pathname !== "/" ? siteUrl.pathname : undefined,
+  site: isVercel
+    ? process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : siteUrl.origin
+    : process.env.SITE || siteUrl.origin,
+  base: basePath,
   integrations: [
     mdx(),
     sitemap({
@@ -45,7 +57,11 @@ export default defineConfig({
       remarkToc,
       [remarkCollapse, { test: "Table of contents" }],
     ],
-    rehypePlugins: [rehypeCallouts, rehypeKatex],
+    rehypePlugins: [
+      rehypeCallouts,
+      rehypeKatex,
+      [rehypePrefixBase, { base: basePath }],
+    ],
     shikiConfig: {
       themes: { light: "github-light", dark: "night-owl" },
       defaultColor: false,
