@@ -202,7 +202,50 @@ Repeated Product (M) ──┤
 #### 1. Vanishing Gradients (When Factors $< 1$)
 If the eigenvalues of the matrices $\mathbf{M}$ are smaller than $1$, each backward step diminishes the gradient signal. By the time the gradient reaches the earliest layers ($\mathbf{W}^{(1)}, \mathbf{W}^{(2)}$), it shrinks to near zero ($10^{-8}$ or smaller).
 * **The Consequence:** Because $\mathbf{W} \leftarrow \mathbf{W} - \eta \cdot \text{Gradient}$, early layers receive virtually no update. They remain frozen at their random initializations, and the network fails to learn foundational low-level features (such as edges and textures).
-* **The Sigmoid Trap:** The derivative of the Sigmoid function peaks at only $0.25$. Multiplying numbers $\le 0.25$ across $10$ layers yields $(0.25)^{10} \approx 10^{-6}$, virtually guaranteeing gradient death.
+
+### Case Study: Why Sigmoid Causes Vanishing Gradients
+
+Historically, the **Sigmoid function** was the default choice because it mimicked biological neurons—either firing ($1$) or staying quiet ($0$). However, its derivative is the primary reason deep networks failed to train for decades:
+
+$$
+\sigma(x) = \frac{1}{1 + \exp(-x)} \implies \frac{d\sigma}{dx} = \sigma(x)\big(1 - \sigma(x)\big)
+$$
+
+During backpropagation, computing the gradient through a hidden layer simply evaluates this derivative at the cached pre-activation value $z$:
+
+$$
+\frac{\partial h}{\partial z} = \sigma'(z) = h(1 - h)
+$$
+
+Let's inspect what happens to this derivative across different input values using PyTorch:
+
+```python
+import torch
+
+# 1. Create input range from -8 to +8
+x = torch.arange(-8.0, 8.0, 0.1, requires_grad=True)
+
+# 2. Forward pass through sigmoid
+y = torch.sigmoid(x)
+
+# 3. Backward pass to compute dy/dx
+y.backward(torch.ones_like(x))
+```
+
+Plotting the Sigmoid function alongside its gradient reveals the mathematical trap:
+
+![Sigmoid and its gradient showing vanishing gradient outside Goldilocks zone](@/assets/images/artificial-intelligent/MLP/sigmoid-gradient.png)
+
+Look closely at the derivative curve (dashed line):
+1. **The 0.25 Ceiling:** The absolute maximum derivative of Sigmoid occurs at $x = 0$, where $\sigma'(0) = 0.5 \times (1 - 0.5) = \mathbf{0.25}$. Everywhere else, it is even smaller.
+2. **The Saturation Trap:** When inputs are large or small ($|x| > 4$), the function flattens out (*saturation*), and the derivative collapses straight to **$0.0$**.
+3. **The Goldilocks Zone:** Unless all neurons miraculously stay in the narrow "Goldilocks zone" near $x \approx 0$, gradients vanish immediately.
+4. **The Compounding Collapse:** Even in the best-case scenario where every layer sits at $x = 0$, multiplying $0.25$ across layers shrinks the gradient exponentially:
+   * Across $5$ layers: $(0.25)^5 \approx 0.00097$
+   * Across $10$ layers: $(0.25)^{10} \approx 0.00000095$ ($< 10^{-6}$)
+   * Across $20$ layers: $(0.25)^{20} \approx 9 \times 10^{-13}$ (effectively zero)
+
+Before the gradient can travel back to the first layer, the signal is completely snuffed out. This is why **ReLU** ($\text{ReLU}'(x) = 1$ for $x > 0$) replaced Sigmoid as the standard activation function for deep hidden layers.
 
 #### 2. Exploding Gradients (When Factors $> 1$)
 If the eigenvalues of $\mathbf{M}$ are consistently greater than $1$, the product grows exponentially.
