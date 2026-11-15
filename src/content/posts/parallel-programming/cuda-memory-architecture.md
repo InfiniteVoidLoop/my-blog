@@ -2,7 +2,7 @@
 author: DangVoHongPhuc
 pubDatetime: 2026-11-06T10:00:00+07:00
 modDatetime: 2026-11-15T14:20:00+07:00
-title: "CUDA Memory Architecture: Hierarchy, Coalescing & Bank Conflicts"
+title: "CUDA Memory Architecture"
 slug: cuda-memory-architecture
 featured: false
 draft: false
